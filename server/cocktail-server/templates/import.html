@@ -243,7 +243,102 @@
     .instruction-header.active .toggle-icon {
         transform: rotate(180deg);
     }
+
+    /* Styles pour les notifications */
+    .notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+
+    .notification {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin-bottom: 10px;
+        padding: 16px;
+        min-width: 300px;
+        max-width: 400px;
+        display: flex;
+        align-items: center;
+        transform: translateX(120%);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification-icon {
+        margin-right: 12px;
+        font-size: 20px;
+    }
+
+    .notification-content {
+        flex-grow: 1;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .notification-message {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .notification-progress {
+        margin-top: 8px;
+        height: 4px;
+        background: #eee;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .notification-progress-bar {
+        height: 100%;
+        background: #e63429;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .notification.success {
+        border-left: 4px solid #4CAF50;
+    }
+
+    .notification.error {
+        border-left: 4px solid #f44336;
+    }
+
+    .notification.info {
+        border-left: 4px solid #2196F3;
+    }
+
+    .notification.warning {
+        border-left: 4px solid #FFC107;
+    }
+
+    .notification-status {
+        font-size: 12px;
+        color: #666;
+        margin-top: 4px;
+    }
+
+    .notification-close {
+        margin-left: 12px;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+
+    .notification-close:hover {
+        opacity: 1;
+    }
   </style>
+
+  <div class="notification-container" id="notificationContainer"></div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -395,27 +490,112 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Gestion du bouton d'importation
+        // Système de notifications
+        function showNotification(type, title, message, progress = null, persistent = false) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = '';
+            switch(type) {
+                case 'success':
+                    icon = '✅';
+                    break;
+                case 'error':
+                    icon = '❌';
+                    break;
+                case 'info':
+                    icon = 'ℹ️';
+                    break;
+                case 'warning':
+                    icon = '⚠️';
+                    break;
+            }
+
+            notification.innerHTML = `
+                <span class="notification-icon">${icon}</span>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                    ${progress !== null ? `
+                        <div class="notification-progress">
+                            <div class="notification-progress-bar" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="notification-status">${progress}%</div>
+                    ` : ''}
+                </div>
+                ${!persistent ? `
+                    <span class="notification-close">✕</span>
+                ` : ''}
+            `;
+
+            container.appendChild(notification);
+            
+            // Animation d'entrée
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Gestion de la fermeture manuelle
+            const closeButton = notification.querySelector('.notification-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        container.removeChild(notification);
+                    }, 300);
+                });
+            }
+
+            // Suppression automatique après 5 secondes si non persistante
+            if (!persistent) {
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (container.contains(notification)) {
+                            container.removeChild(notification);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            return notification;
+        }
+
+        // Fonction pour mettre à jour la notification de progression
+        function updateProgressNotification(notification, progress, message) {
+            const progressBar = notification.querySelector('.notification-progress-bar');
+            const statusText = notification.querySelector('.notification-status');
+            const messageElement = notification.querySelector('.notification-message');
+            
+            if (progressBar) progressBar.style.width = `${progress}%`;
+            if (statusText) statusText.textContent = `${progress}%`;
+            if (messageElement) messageElement.textContent = message;
+        }
+
+        // Modification du gestionnaire d'importation
         startImport.addEventListener('click', async () => {
             console.log('Début de l\'importation');
             
             if (currentFiles.length === 0) {
-                console.error('Aucun fichier sélectionné');
-                alert('Veuillez sélectionner au moins un fichier CSV');
+                showNotification('error', 'Erreur', 'Veuillez sélectionner au moins un fichier CSV');
                 return;
             }
 
             const importName = document.getElementById('importName').value;
             if (!importName) {
-                console.error('Nom d\'importation manquant');
-                alert('Veuillez entrer un nom pour l\'importation');
+                showNotification('error', 'Erreur', 'Veuillez entrer un nom pour l\'importation');
                 return;
             }
 
-            console.log('Préparation de l\'importation:', {
-                files: currentFiles.map(f => f.name),
-                importName: importName
-            });
+            // Notification de début d'importation (persistante)
+            const progressNotification = showNotification(
+                'info',
+                'Importation en cours',
+                'Préparation de l\'importation...',
+                0,
+                true
+            );
 
             const formData = new FormData();
             currentFiles.forEach(file => {
@@ -425,37 +605,82 @@
             formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
 
             try {
-                console.log('Envoi de la requête d\'importation');
+                // Simuler la progression pendant l'importation
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 10;
+                        updateProgressNotification(
+                            progressNotification,
+                            progress,
+                            'Importation en cours...'
+                        );
+                    }
+                }, 1000);
+
                 const projectId = '{{ project_id }}';
-                console.log('ID du projet:', projectId);
                 const response = await fetch(`/api/import/csv?project_id=${projectId}`, {
                     method: 'POST',
                     body: formData
                 });
 
+                clearInterval(progressInterval);
+
                 const result = await response.json();
-                console.log('Réponse du serveur:', result);
                 
                 if (response.ok) {
-                    console.log('Importation réussie:', {
-                        rowsImported: result.rows_imported,
-                        message: result.message
-                    });
-                    alert(`Import réussi ! ${result.rows_imported} lignes importées.`);
+                    // Mise à jour finale de la progression
+                    updateProgressNotification(
+                        progressNotification,
+                        100,
+                        'Importation terminée'
+                    );
+
+                    // Notification de succès
+                    showNotification(
+                        'success',
+                        'Importation réussie',
+                        `${result.rows_imported} lignes ont été importées avec succès.`
+                    );
+
+                    // Supprimer la notification de progression après un délai
+                    setTimeout(() => {
+                        progressNotification.classList.remove('show');
+                        setTimeout(() => {
+                            if (progressNotification.parentNode) {
+                                progressNotification.parentNode.removeChild(progressNotification);
+                            }
+                        }, 300);
+                    }, 2000);
+
                     // Réinitialiser le formulaire
                     document.getElementById('importName').value = '';
                     selectedFiles.innerHTML = '';
                     currentFiles = [];
                 } else {
-                    console.error('Erreur lors de l\'importation:', {
-                        status: response.status,
-                        message: result.message
-                    });
-                    alert(`Erreur lors de l'import : ${result.message}`);
+                    updateProgressNotification(
+                        progressNotification,
+                        0,
+                        'Erreur lors de l\'importation'
+                    );
+                    showNotification(
+                        'error',
+                        'Erreur d\'importation',
+                        result.message || 'Une erreur est survenue lors de l\'importation'
+                    );
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'importation:', error);
-                alert('Une erreur est survenue lors de l\'importation');
+                updateProgressNotification(
+                    progressNotification,
+                    0,
+                    'Erreur lors de l\'importation'
+                );
+                showNotification(
+                    'error',
+                    'Erreur',
+                    'Une erreur est survenue lors de l\'importation'
+                );
             }
         });
 

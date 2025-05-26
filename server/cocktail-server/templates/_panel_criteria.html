@@ -1,11 +1,5 @@
 <div class="panel" {% if active_page=="daterange" || active_page=="hashtags" || active_page=="request" %}
   style="display: block;" {% endif %}>
-  <a href="#" class='aside__item {% if active_page == "daterange" %} active {% endif %}'>
-    <div class="aside__item__left">
-      <span class="aside__item__icon icon-calendrier"></span>
-      <span class="aside__item__text">Jeu de donnée</span>
-    </div>
-  </a>
   <a href="{{ daterange_path }}" class='aside__item {% if active_page == "daterange" %} active {% endif %}'>
     <div class="aside__item__left">
       <span class="aside__item__icon icon-calendrier"></span>

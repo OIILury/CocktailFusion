@@ -122,14 +122,35 @@ $gray-color: #7f8c8d;
         background-color: $background-light;
         border-radius: 4px;
         margin-bottom: 0.5rem;
+        position: relative;
 
         .file-name {
             color: $text-color;
+            flex: 1;
+            margin-right: 1rem;
+            word-break: break-all;
+        }
+
+        .file-size {
+            color: $gray-color;
+            margin-right: 1rem;
+            white-space: nowrap;
         }
 
         .remove-file {
-            color: $error-color;
+            background: none;
+            border: none;
+            color: white;
+            background-color: $error-color;
             cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            @include transition;
+
+            &:hover {
+                background-color: darken($error-color, 10%);
+            }
         }
     }
 }
@@ -216,6 +237,179 @@ $gray-color: #7f8c8d;
 
     &:hover {
         background-color: $primary-hover;
+    }
+}
+
+// Styles pour les modes d'importation
+.import-mode {
+    margin-bottom: 2rem;
+
+    h4 {
+        color: $text-color;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .import-mode-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .mode-card {
+        position: relative;
+        border: 2px solid $border-color;
+        border-radius: 8px;
+        padding: 1.5rem;
+        cursor: pointer;
+        @include transition;
+
+        &:hover {
+            border-color: $primary-color;
+            transform: translateY(-2px);
+        }
+
+        input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        input[type="radio"]:checked + .mode-content {
+            .mode-icon {
+                background-color: $primary-color;
+                color: white;
+            }
+        }
+
+        .mode-content {
+            text-align: center;
+
+            .mode-icon {
+                display: inline-block;
+                font-size: 2rem;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                background-color: $background-light;
+                border-radius: 50%;
+                @include transition;
+            }
+
+            h5 {
+                color: $text-color;
+                margin-bottom: 0.5rem;
+                font-size: 1.1rem;
+            }
+
+            p {
+                color: $gray-color;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                margin: 0;
+            }
+        }
+    }
+}
+
+// Styles pour la section d'instructions d'importation
+.import-instructions {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background-color: $background-light;
+    border-radius: 8px;
+    border-left: 4px solid $primary-color;
+
+    .instruction-content {
+        h6 {
+            color: $text-color;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            color: $text-color;
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .instruction-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            h6 {
+                color: $primary-color;
+                font-size: 1rem;
+                margin-bottom: 1rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 2px solid $border-color;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+
+                &.nested-list {
+                    margin-top: 0.75rem;
+                    margin-left: 1.75rem;
+                    padding-left: 1.25rem;
+                    border-left: 2px solid $border-color;
+
+                    li {
+                        margin-bottom: 0.5rem;
+                        font-size: 0.9rem;
+                        color: $gray-color;
+                        line-height: 1.5;
+                    }
+                }
+
+                li {
+                    color: $text-color;
+                    margin-bottom: 0.75rem;
+                    font-size: 0.95rem;
+                    padding-left: 1.75rem;
+                    position: relative;
+                    line-height: 1.5;
+
+                    &:before {
+                        content: "•";
+                        color: $primary-color;
+                        position: absolute;
+                        left: 0.75rem;
+                        font-size: 1.2rem;
+                    }
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+
+                    strong {
+                        color: $primary-color;
+                        font-weight: 700;
+                        letter-spacing: 0.3px;
+                    }
+
+                    em {
+                        color: $gray-color;
+                        font-style: italic;
+                        font-size: 0.9rem;
+                    }
+                }
+            }
+        }
     }
 }
 

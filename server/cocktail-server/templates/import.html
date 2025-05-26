@@ -40,25 +40,136 @@
         <div class="import-card">
             <h3>Nouvelle importation</h3>
             
+            <!-- Mode d'importation -->
+            <div class="import-mode">
+                <h4>Mode d'importation</h4>
+                <div class="import-mode-cards">
+                    <div class="mode-card" id="singleFileCard">
+                        <input type="radio" id="singleFileMode" name="importMode" value="single" checked>
+                        <div class="mode-content">
+                            <span class="mode-icon">📄</span>
+                            <h5>Fichier unique</h5>
+                            <p>Importez toutes vos données depuis un seul fichier CSV</p>
+                        </div>
+                    </div>
+                    <div class="mode-card" id="multipleFilesCard">
+                        <input type="radio" id="multipleFilesMode" name="importMode" value="multiple">
+                        <div class="mode-content">
+                            <span class="mode-icon">📚</span>
+                            <h5>Fichiers multiples</h5>
+                            <p>Importez vos données depuis plusieurs fichiers CSV (un fichier par table)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="import-instructions">
+                    <div id="singleFileInstructions" class="instruction-content">
+                        <div class="instruction-header">
+                            <h6>Instructions pour un fichier unique</h6>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="instruction-body">
+                            <p>Votre fichier CSV doit contenir les colonnes suivantes :</p>
+                            
+                            <div class="instruction-section">
+                                <h6>Informations principales du tweet</h6>
+                                <ul>
+                                    <li><strong>id</strong> : Identifiant unique du tweet</li>
+                                    <li><strong>created_at</strong> : Date de création <em>(format: YYYY-MM-DD HH:MM:SS)</em></li>
+                                    <li><strong>published_time</strong> : Date de publication <em>Timestamp Unix</em></li>
+                                    <li><strong>user_id</strong> : Identifiant unique de l'utilisateur</li>
+                                    <li><strong>user_name</strong> : Nom complet de l'utilisateur</li>
+                                    <li><strong>user_screen_name</strong> : Nom d'utilisateur <em>@username</em></li>
+                                    <li><strong>text</strong> : Contenu du tweet</li>
+                                    <li><strong>source</strong> : Source du tweet <em>(Twitter ou Bluesky)</em></li>
+                                    <li><strong>language</strong> : Langue du tweet</li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Localisation <em>(optionnel)</em></h6>
+                                <ul>
+                                    <li><strong>coordinates_longitude</strong> : Longitude</li>
+                                    <li><strong>coordinates_latitude</strong> : Latitude</li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Métriques et statistiques</h6>
+                                <ul>
+                                    <li><strong>possibly_sensitive</strong> : Contenu sensible <em>(true/false)</em></li>
+                                    <li><strong>retweet_count</strong> : Nombre de retweets</li>
+                                    <li><strong>reply_count</strong> : Nombre de réponses</li>
+                                    <li><strong>quote_count</strong> : Nombre de citations</li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Contenu enrichi</h6>
+                                <ul>
+                                    <li><strong>hashtags</strong> : Liste des hashtags <em>séparés par des virgules</em></li>
+                                    <li><strong>urls</strong> : Liste des URLs <em>séparées par des virgules</em></li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Relations avec d'autres tweets</h6>
+                                <ul>
+                                    <li><strong>retweeted_tweet_id</strong> : ID du tweet retweeté <em>si applicable</em></li>
+                                    <li><strong>in_reply_to_tweet_id</strong> : ID du tweet auquel on répond <em>si applicable</em></li>
+                                    <li><strong>quoted_tweet_id</strong> : ID du tweet cité <em>si applicable</em></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="multipleFilesInstructions" class="instruction-content" style="display: none;">
+                        <div class="instruction-header">
+                            <h6>Instructions pour fichiers multiples</h6>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="instruction-body">
+                            <p>Créez un fichier CSV séparé pour chaque type de données :</p>
+                            
+                            <div class="instruction-section">
+                                <h6>Fichier principal</h6>
+                                <ul>
+                                    <li><strong>tweets.csv</strong> : <em>Contient les tweets avec les colonnes :</em>
+                                        <ul class="nested-list">
+                                            <li><strong>id</strong>, <strong>created_at</strong>, <strong>published_time</strong></li>
+                                            <li><strong>user_id</strong>, <strong>user_name</strong>, <strong>user_screen_name</strong></li>
+                                            <li><strong>text</strong>, <strong>source</strong>, <strong>language</strong></li>
+                                            <li><strong>coordinates_longitude</strong>, <strong>coordinates_latitude</strong></li>
+                                            <li><strong>possibly_sensitive</strong></li>
+                                            <li><strong>retweet_count</strong>, <strong>reply_count</strong>, <strong>quote_count</strong></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Fichiers de contenu enrichi</h6>
+                                <ul>
+                                    <li><strong>hashtags.csv</strong> : <em>Contient les hashtags avec les colonnes : </em><strong>tweet_id</strong>, <strong>hashtag</strong></li>
+                                    <li><strong>urls.csv</strong> : <em>Contient les URLs avec les colonnes : </em><strong>tweet_id</strong>, <strong>url</strong></li>
+                                </ul>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6>Fichiers de relations</h6>
+                                <ul>
+                                    <li><strong>retweets.csv</strong> : <em>Contient les retweets avec la colonne : </em><strong>retweeted_tweet_id</strong></li>
+                                    <li><strong>replies.csv</strong> : <em>Contient les réponses avec la colonne : </em><strong>in_reply_to_tweet_id</strong></li>
+                                    <li><strong>quotes.csv</strong> : <em>Contient les citations avec la colonne : </em><strong>quoted_tweet_id</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Nom de l'importation -->
             <div class="input-group">
                 <label for="importName">Nom de l'importation</label>
                 <input type="text" id="importName" placeholder="Entrez le nom de votre importation">
-            </div>
-
-            <!-- Mode d'importation -->
-            <div class="import-mode">
-                <label>Mode d'importation</label>
-                <div class="radio-group">
-                    <div class="radio-option">
-                        <input type="radio" id="singleFileMode" name="importMode" value="single" checked>
-                        <label for="singleFileMode">Fichier unique (toutes les tables)</label>
-                    </div>
-                    <div class="radio-option">
-                        <input type="radio" id="multipleFilesMode" name="importMode" value="multiple">
-                        <label for="multipleFilesMode">Fichiers multiples (une table par fichier)</label>
-                    </div>
-                </div>
             </div>
     
             <!-- Zone de dépôt de fichiers -->
@@ -100,6 +211,40 @@
 
   {% include "footer.html" %}
 
+  <style>
+    .instruction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+
+    .instruction-header:hover {
+        background-color: #e9e9e9;
+    }
+
+    .instruction-body {
+        display: none;
+        padding: 10px;
+    }
+
+    .instruction-body.active {
+        display: block;
+    }
+
+    .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .instruction-header.active .toggle-icon {
+        transform: rotate(180deg);
+    }
+  </style>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Initialisation de la page d\'importation');
@@ -109,38 +254,73 @@
         const startImport = document.getElementById('startImport');
         const singleFileMode = document.getElementById('singleFileMode');
         const multipleFilesMode = document.getElementById('multipleFilesMode');
+        const singleFileCard = document.getElementById('singleFileCard');
+        const multipleFilesCard = document.getElementById('multipleFilesCard');
         const dropZoneText = document.getElementById('dropZoneText');
+        const importNameInput = document.getElementById('importName');
         let currentFiles = [];
 
-        // Gestion du mode d'importation
-        singleFileMode.addEventListener('change', () => {
+        // Gestion du mode d'importation avec les cartes
+        singleFileCard.addEventListener('click', () => {
+            singleFileMode.checked = true;
             dropZoneText.textContent = 'Glissez et déposez votre fichier CSV ici';
             fileInput.removeAttribute('multiple');
             currentFiles = [];
             selectedFiles.innerHTML = '';
+            updateCardStyles();
+            updateInstructions();
         });
 
-        multipleFilesMode.addEventListener('change', () => {
+        multipleFilesCard.addEventListener('click', () => {
+            multipleFilesMode.checked = true;
             dropZoneText.textContent = 'Glissez et déposez vos fichiers CSV ici';
             fileInput.setAttribute('multiple', '');
             currentFiles = [];
             selectedFiles.innerHTML = '';
+            updateCardStyles();
+            updateInstructions();
         });
+
+        function updateCardStyles() {
+            singleFileCard.style.borderColor = singleFileMode.checked ? '#e63429' : '#ddd';
+            multipleFilesCard.style.borderColor = multipleFilesMode.checked ? '#e63429' : '#ddd';
+        }
+
+        function updateInstructions() {
+            const singleInstructions = document.getElementById('singleFileInstructions');
+            const multipleInstructions = document.getElementById('multipleFilesInstructions');
+            
+            if (singleFileMode.checked) {
+                singleInstructions.style.display = 'block';
+                multipleInstructions.style.display = 'none';
+            } else {
+                singleInstructions.style.display = 'none';
+                multipleInstructions.style.display = 'block';
+            }
+        }
+
+        // Initialiser les styles des cartes et les instructions
+        updateCardStyles();
+        updateInstructions();
 
         // Gestion du drag and drop
         fileDropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             fileDropZone.classList.add('dragover');
             console.log('Fichier(s) survolant la zone de dépôt');
         });
 
-        fileDropZone.addEventListener('dragleave', () => {
+        fileDropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             fileDropZone.classList.remove('dragover');
             console.log('Fichier(s) quittant la zone de dépôt');
         });
 
         fileDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             fileDropZone.classList.remove('dragover');
             const files = Array.from(e.dataTransfer.files);
             console.log('Fichiers déposés:', files.map(f => f.name));
@@ -149,6 +329,8 @@
 
         // Gestion du clic sur le bouton "Parcourir"
         fileInput.addEventListener('change', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const files = Array.from(e.target.files);
             console.log('Fichiers sélectionnés:', files.map(f => f.name));
             handleFiles(files);
@@ -157,7 +339,9 @@
         // Gestion des fichiers sélectionnés
         function handleFiles(files) {
             const validFiles = files.filter(file => 
-                file.type === 'text/csv' || file.type === 'application/vnd.ms-excel'
+                file.type === 'text/csv' || 
+                file.type === 'application/vnd.ms-excel' ||
+                file.name.toLowerCase().endsWith('.csv')
             );
 
             if (validFiles.length === 0) {
@@ -174,9 +358,8 @@
 
             currentFiles = validFiles;
             
-            // Mettre le nom du premier fichier dans l'input importName si en mode fichier unique
-            if (singleFileMode.checked) {
-                const importNameInput = document.getElementById('importName');
+            // Mettre à jour le nom de l'importation si en mode fichier unique
+            if (singleFileMode.checked && validFiles.length === 1) {
                 const fileNameWithoutExtension = validFiles[0].name.replace(/\.csv$/i, '');
                 importNameInput.value = fileNameWithoutExtension;
             }
@@ -186,8 +369,21 @@
                 <div class="selected-file">
                     <span class="file-name">${file.name}</span>
                     <span class="file-size">${formatFileSize(file.size)}</span>
+                    <button class="remove-file" data-filename="${file.name}">×</button>
                 </div>
             `).join('');
+
+            // Ajouter les gestionnaires d'événements pour les boutons de suppression
+            document.querySelectorAll('.remove-file').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const fileName = e.target.dataset.filename;
+                    currentFiles = currentFiles.filter(file => file.name !== fileName);
+                    if (currentFiles.length === 0) {
+                        importNameInput.value = '';
+                    }
+                    handleFiles(currentFiles);
+                });
+            });
         }
 
         // Formatage de la taille du fichier
@@ -261,6 +457,15 @@
                 console.error('Erreur lors de l\'importation:', error);
                 alert('Une erreur est survenue lors de l\'importation');
             }
+        });
+
+        // Gestion des blocs d'instructions dépliables
+        document.querySelectorAll('.instruction-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const body = header.nextElementSibling;
+                header.classList.toggle('active');
+                body.classList.toggle('active');
+            });
         });
     });
   </script>

@@ -1,4 +1,8 @@
 use std::{fmt, fs, net::SocketAddr, path::PathBuf, str::FromStr};
+use crate::routes::paths::StartCollection;
+use crate::routes::collect::start_collection;
+use crate::routes::collect::delete_collection;
+use crate::routes::collect::update_collection;
 
 use axum::{
   async_trait,
@@ -268,6 +272,9 @@ pub async fn run(
     .typed_get(communities)
     .typed_get(communities_tab)
     .typed_post(reload_communities)
+    .typed_post(start_collection)
+    .typed_post(delete_collection)
+    .typed_post(update_collection)
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
     .merge(csv_import::routes())

@@ -1,8 +1,10 @@
 use axum::{
-    extract::State,
+    extract::{State, Query},
     response::IntoResponse,
+    http::HeaderMap,
 };
-use hyper::HeaderMap;
+use ory_kratos_client::apis::configuration::Configuration;
+use serde::Deserialize;
 
 use crate::{
     error::WebError,
@@ -14,7 +16,6 @@ use crate::{
     routes::paths,
     AppState,
 };
-
 #[tracing::instrument]
 pub async fn collect(
     paths::ProjectCollect { project_id }: paths::ProjectCollect,
@@ -27,12 +28,10 @@ pub async fn collect(
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, WebError> {
     let logout_url = get_logout_url(state.kratos_configuration, headers).await;
-
     let project = cocktail_db_web::project(&state.db, project_id.to_hyphenated(), &user_id).await?;
     let (include_count, exclude_count) =
         cocktail_db_web::include_exclude_hashtag_count(&state.db, project_id.to_hyphenated(), &user_id)
             .await?;
-
     Ok(HtmlTemplate(Collect {
         daterange_path: paths::ProjectDateRange { project_id },
         hashtag_path: paths::ProjectHashtags { project_id },

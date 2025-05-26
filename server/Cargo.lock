@@ -530,6 +530,7 @@ dependencies = [
  "num-format",
  "ory-kratos-client",
  "regex",
+ "reqwest",
  "rust-embed",
  "serde",
  "serde_json",

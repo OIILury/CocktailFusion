@@ -1,10 +1,8 @@
 use axum::{
-    extract::{State, Query},
+    extract::State,
     response::IntoResponse,
-    http::HeaderMap,
 };
-use ory_kratos_client::apis::configuration::Configuration;
-use serde::Deserialize;
+use hyper::HeaderMap;
 
 use crate::{
     error::WebError,

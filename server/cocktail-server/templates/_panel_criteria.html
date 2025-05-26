@@ -1,50 +1,34 @@
 <div class="panel" {% if active_page=="daterange" || active_page=="hashtags" || active_page=="request" %}
   style="display: block;" {% endif %}>
+  <a href="#" class='aside__item {% if active_page == "daterange" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-calendrier"></span>
+      <span class="aside__item__text">Jeu de donnée</span>
+    </div>
+  </a>
   <a href="{{ daterange_path }}" class='aside__item {% if active_page == "daterange" %} active {% endif %}'>
     <div class="aside__item__left">
       <span class="aside__item__icon icon-calendrier"></span>
       <span class="aside__item__text">Période</span>
     </div>
   </a>
-  {% if niveau < 2 %} <a href="{{ hashtag_path }}"
-    class='aside__item {% if active_page == "hashtags" %} active {% endif %}'>
+  <a href="{{ request_path }}" class='aside__item {% if active_page == "request" %} active {% endif %}'>
     <div class="aside__item__left">
-      <span class="aside__item__icon icon-hashtag"></span>
-      <span class="aside__item__text">Hashtags</span>
+      <span class="aside__item__icon icon-gear"></span>
+      <span class="aside__item__text">Paramétrage de la requête</span>
     </div>
-    <div class="aside__item__right">
-      <span id="include-count" class="aside__item__hastagsInclude">{{ include_count }}</span>
-      <span class="aside__item__hastagsSeparator">|</span>
-      <span id="exclude-count" class="aside__item__hastagsExclude">{{ exclude_count }}</span>
-    </div>
-    </a>
-    {% endif %}
-    {% if niveau == 2 %}
-    <a href="{{ request_path }}" class='aside__item {% if active_page == "request" %} active {% endif %}'>
-      <div class="aside__item__left">
-        <span class="aside__item__icon icon-gear"></span>
-        <span class="aside__item__text">Paramétrage de la requête</span>
-      </div>
-    </a>
-    {% else %}
-    <a href="#" class='aside__item disabled'>
-      <div class="aside__item__left">
-        <span class="aside__item__icon icon-gear"></span>
-        <span class="aside__item__text">Paramétrage de la requête</span>
-      </div>
-    </a>
-    {% endif %}
-    <div class="button-center">
-      <turbo-frame>
-        <a href="{{ analysis_preview_popup_path }}" class="preview-result">
-          <span class="aside__item__icon icon-eye"></span>
-          <span class="aside__item__text">Aperçu rapide des tweets</span>
-        </a>
-      </turbo-frame>
-    </div>
-    <div class="button-center">
-      <form action="{{ analysis_path }}" method="post" class="analyse">
-        <button type="submit">Lancer l'analyse</button>
-      </form>
-    </div>
+  </a>
+  <div class="button-center">
+    <turbo-frame>
+      <a href="{{ analysis_preview_popup_path }}" class="preview-result">
+        <span class="aside__item__icon icon-eye"></span>
+        <span class="aside__item__text">Aperçu rapide des tweets</span>
+      </a>
+    </turbo-frame>
+  </div>
+  <div class="button-center">
+    <form action="{{ analysis_path }}" method="post" class="analyse">
+      <button type="submit">Lancer l'analyse</button>
+    </form>
+  </div>
 </div>

@@ -14,12 +14,15 @@ struct Args {
 fn main() -> anyhow::Result<()> {
   let args = Args::parse();
 
-  let index = fts::retrieve_index(args.directory_path).map_err(|_e| anyhow::anyhow!("oups"))?;
-  let topk = fts::topk(&index, &args.query, MAX).map_err(|e| {
-    dbg!(e);
-    anyhow::anyhow!("topk oups")
+  let index = fts::retrieve_index(args.directory_path.clone()).map_err(|e| {
+    anyhow::anyhow!("Erreur lors de la récupération de l'index: {:?}", e)
   })?;
-  println!("{topk}");
+
+  let topk = fts::topk(&index, &args.query, MAX).map_err(|e| {
+    anyhow::anyhow!("Erreur lors de la génération des top hashtags: {:?}", e)
+  })?;
+  
+  println!("{}", topk);
 
   Ok(())
 }

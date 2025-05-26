@@ -6,7 +6,7 @@ use tantivy::{
 };
 
 pub fn create_index_config<P: AsRef<Path>>(directory_path: P) -> Result<(), TantivyError> {
-  fs::create_dir_all(&directory_path)?;
+  fs::create_dir(&directory_path)?;
   let mut schema_builder = Schema::builder();
 
   schema_builder.add_text_field("id", STRING | FAST | STORED);

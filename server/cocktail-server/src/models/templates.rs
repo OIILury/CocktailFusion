@@ -39,7 +39,6 @@ pub(crate) struct NewProjectsTemplate {
 
 #[derive(Debug, Template)]
 #[template(path = "daterange.html")]
-#[allow(dead_code)]
 pub(crate) struct DateRange {
   pub daterange_path: paths::ProjectDateRange,
   pub hashtag_path: paths::ProjectHashtags,
@@ -841,7 +840,6 @@ pub(crate) struct Collect {
 
 #[derive(Debug, Template)]
 #[template(path = "import.html")]
-#[allow(dead_code)]
 pub struct ImportTemplate {
     pub project_id: String,
     pub import_path: ProjectImport,

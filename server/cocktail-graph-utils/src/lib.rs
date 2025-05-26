@@ -101,7 +101,7 @@ impl GraphGenerator {
       return Err(GraphError::Searcher("aucun document".to_string()));
     }
 
-    // self.delete_schema_c_est_mal(&pool).await?;
+    self.delete_schema_c_est_mal(&pool).await?;
     self.create_schema(&pool).await?;
     self.set_status_started(&pool).await?;
     self.create_tmp_table(&pool).await?;
@@ -192,7 +192,7 @@ impl GraphGenerator {
       r#"
   CREATE TABLE "{schema}".tweet AS
   SELECT *
-  FROM vegan_pac.tweet t
+  FROM cockt.tweet t
   JOIN "{schema}".searched_tweet_id b USING (id)
               "#,
       schema = self.schema
@@ -205,7 +205,7 @@ impl GraphGenerator {
       r#"
 CREATE TABLE "{schema}"."user" AS
 SELECT distinct u.id , u.screen_name, u."name" 
-FROM vegan_pac.user u
+FROM cockt.user u
 JOIN "{schema}".tweet t ON t.user_id = u.id;
               "#,
       schema = self.schema
@@ -217,7 +217,7 @@ JOIN "{schema}".tweet t ON t.user_id = u.id;
       r#"
 CREATE TABLE "{schema}".retweet AS
 SELECT r.*
-FROM vegan_pac.retweet r
+FROM cockt.retweet r
 JOIN "{schema}".searched_tweet_id b on b.id = r.retweeted_tweet_id
               "#,
       schema = self.schema
@@ -229,7 +229,7 @@ JOIN "{schema}".searched_tweet_id b on b.id = r.retweeted_tweet_id
       r#"
 CREATE TABLE "{schema}".tweet_user_mention AS
 SELECT m.*
-FROM vegan_pac.tweet_user_mention m
+FROM cockt.tweet_user_mention m
 JOIN "{schema}".searched_tweet_id b on b.id = m.tweet_id
             "#,
       schema = self.schema
@@ -241,7 +241,7 @@ JOIN "{schema}".searched_tweet_id b on b.id = m.tweet_id
       r#"
 CREATE TABLE "{schema}".quote AS
 SELECT q.*
-FROM vegan_pac.quote q
+FROM cockt.quote q
 JOIN "{schema}".searched_tweet_id b on b.id = q.quoted_tweet_id
           "#,
       schema = self.schema
@@ -253,7 +253,7 @@ JOIN "{schema}".searched_tweet_id b on b.id = q.quoted_tweet_id
       r#"
 CREATE TABLE "{schema}".tweet_hashtag AS
 SELECT h.*
-FROM vegan_pac.tweet_hashtag h
+FROM cockt.tweet_hashtag h
 JOIN "{schema}".searched_tweet_id b on b.id = h.tweet_id
         "#,
       schema = self.schema
@@ -516,7 +516,7 @@ CREATE TABLE IF NOT EXISTS "{schema}".link (
   pub async fn delete_schema(&self) -> Result<(), GraphError> {
     let pool = self.get_pg_pool().await?;
 
-    // self.delete_schema_c_est_mal(&pool).await?;
+    self.delete_schema_c_est_mal(&pool).await?;
 
     pool.close().await;
 

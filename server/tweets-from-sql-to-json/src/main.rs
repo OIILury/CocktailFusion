@@ -1,8 +1,9 @@
-use std::io::{stdout, BufWriter, Write};
+use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Write};
+
+use chrono::NaiveDate;
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Row};
-use tracing::{error, debug};
+use sqlx::{FromRow, PgPool};
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 struct Tweet {
@@ -18,9 +19,7 @@ struct Tweet {
   coordinates_longitude: Option<String>,
   coordinates_latitude: Option<String>,
   possibly_sensitive: Option<bool>,
-  #[serde(default)]
   hashtags: Option<Vec<String>>,
-  #[serde(default)]
   urls: Option<Vec<String>>,
   retweet_count: i64,
   reply_count: i64,
@@ -33,55 +32,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()
   });
 
-  let schema_name = std::env::var("SCHEMA_NAME").expect("SCHEMA_NAME must be set");
-  debug!("Utilisation du schéma: {}", schema_name);
-
   let pool = PgPool::connect(&pg_url).await?;
-  debug!("Connexion à la base de données établie");
 
-  // Vérifier si les tables existent
-  let tables_exist = sqlx::query(&format!(
-    "SELECT EXISTS (
-      SELECT FROM information_schema.tables 
-      WHERE table_schema = '{}' 
-      AND table_name = 'tweet'
-    )",
-    schema_name
-  ))
-  .fetch_one(&pool)
-  .await?;
+  let rdr = BufReader::new(stdin());
+  let mut date: Option<NaiveDate> = None;
 
-  if !tables_exist.get::<bool, _>(0) {
-    error!("Les tables n'existent pas dans le schéma {}", schema_name);
-    return Ok(());
+  for input in rdr.lines() {
+    let input_date = NaiveDate::parse_from_str(input?.as_str(), "%Y-%m-%d");
+
+    if input_date.is_ok() {
+      date = Some(input_date?);
+    }
+
+    break;
   }
 
-  // Compter le nombre de tweets
-  let count: i64 = sqlx::query(&format!(
-    "SELECT COUNT(*) FROM {}.tweet",
-    schema_name
-  ))
-  .fetch_one(&pool)
-  .await?
-  .get(0);
+  if date.is_none() {
+    println!("Paramètre date invalide: format attendu YYYY-MM-DD");
 
-  debug!("Nombre de tweets trouvés: {}", count);
-
+    return Ok(());
+  }
   let query = format!(
     r#"
         WITH rt as (
             SELECT retweeted_tweet_id AS id, count(*) AS count
-            FROM {schema_name}.retweet
+            FROM cockt.retweet
             GROUP BY 1
         ),
 		reply AS (
             SELECT in_reply_to_tweet_id AS id, count(*) AS count
-            FROM {schema_name}.reply
+            FROM cockt.reply
             GROUP BY 1
 		),
 		quote_ AS (
             SELECT quoted_tweet_id AS id, count(*) AS count
-            FROM {schema_name}.quote
+            FROM cockt.quote
             GROUP BY 1
 		)
         SELECT
@@ -103,22 +88,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             COALESCE(reply.count, 0) AS reply_count,
 			COALESCE(quote_.count, 0) AS quote_count
         FROM
-          {schema_name}.tweet
+          cockt.tweet
             LEFT JOIN (
                 SELECT
                     tweet_id as id,
-                    COALESCE(array_agg(hashtag), ARRAY[]::text[]) as hashtags
+                    array_agg(hashtag) as hashtags
                 FROM
-                {schema_name}.tweet_hashtag
+                cockt.tweet_hashtag
                 GROUP BY
                     tweet_id
             ) h USING (id)
             LEFT JOIN (
               SELECT
                   tweet_id as id,
-                  COALESCE(array_agg(url), ARRAY[]::text[]) as urls
+                  array_agg(url) as urls
               FROM
-              {schema_name}.tweet_url
+              cockt.tweet_url
               GROUP BY
                   tweet_id
           ) u USING (id)
@@ -127,20 +112,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 			LEFT JOIN quote_ USING(id)
         WHERE
             user_name is not null AND user_screen_name is not null
+          AND
+            date(created_at) = '{date}'
     "#,
-    schema_name = schema_name
+    date = date.unwrap().to_string()
   );
 
-  debug!("Exécution de la requête SQL");
   let mut rows = sqlx::query_as::<_, Tweet>(&query).fetch(&pool);
-  let mut count = 0;
 
   let mut writer = BufWriter::new(stdout());
   while let Some(row) = rows.try_next().await? {
     serde_json::to_writer(&mut writer, &row)?;
     writer.write_all(b"\n")?;
-    count += 1;
   }
-  debug!("{} tweets exportés", count);
   Ok(())
 }

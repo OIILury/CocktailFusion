@@ -1,5 +1,8 @@
 use std::{fmt, fs, net::SocketAddr, path::PathBuf, str::FromStr};
-
+use crate::routes::paths::StartCollection;
+use crate::routes::collect::start_collection;
+use crate::routes::collect::delete_collection;
+use crate::routes::collect::update_collection;
 use axum::{
   async_trait,
   extract::{FromRef, FromRequestParts},
@@ -44,7 +47,7 @@ use crate::{
     },
     study::{analysis::*, authors::*, communities::*, results},
     csv_import,
-    automation,
+    
   },
 };
 use futures::future;
@@ -68,36 +71,6 @@ pub struct AppState {
   pub database_url: String,
   pub r_script: PathBuf,
   pub python_script: PathBuf,
-}
-
-impl Default for AppState {
-  fn default() -> Self {
-    let database_url = std::env::var("PG_DATABASE_URL").expect("PG_DATABASE_URL must be set");
-    let sqlite_url = format!("sqlite:{}", database_url);
-    
-    let pool = WebDatabase::new(
-      sqlx::sqlite::SqlitePool::connect_lazy(&sqlite_url)
-        .expect("Failed to create pool")
-    );
-    
-    // Créer le chemin vers l'index Tantivy
-    let tantivy_path = std::path::PathBuf::from("tantivy-data/public");
-    
-    Self {
-      db: pool,
-      topk_db: TopKDatabase::new(
-        sqlx::sqlite::SqlitePool::connect_lazy(&sqlite_url)
-          .expect("Failed to create topk pool")
-      ),
-      index: fts::retrieve_index(tantivy_path.clone()).expect("Failed to retrieve index"),
-      kratos_configuration: Configuration::new(),
-      kratos_browser_url: String::new(),
-      directory_path: tantivy_path,
-      database_url,
-      r_script: PathBuf::new(),
-      python_script: PathBuf::new(),
-    }
-  }
 }
 
 impl FromRef<AppState> for Configuration {
@@ -268,10 +241,12 @@ pub async fn run(
     .typed_get(communities)
     .typed_get(communities_tab)
     .typed_post(reload_communities)
+    .typed_post(start_collection)
+    .typed_post(delete_collection)
+    .typed_post(update_collection)
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
     .merge(csv_import::routes())
-    .merge(automation::routes())
     .fallback(fallback)
     .layer(Extension(handlebars_registry))
     .layer(TraceLayer::new_for_http());

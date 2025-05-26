@@ -53,16 +53,18 @@ kratos:
 search query:
   ./target/{{profile}}/cocktail index search --query '{{query}}' --limit 10
 
-topk-db schema:
-  ./target/{{profile}}/topk --directory-path ./tantivy-data/{{schema}} --query "*" | sqlite-utils insert --not-null key --not-null doc_count topk.db hashtag -
 
-docker-topk-db schema:
-  ./target/{{profile}}/topk --directory-path ./tantivy-data/{{schema}} --query "*" | docker run -i --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp  ghcr.io/williamjacksn/sqlite-utils:latest insert --not-null key --not-null doc_count topk.db hashtag -
+topk-db:
+  # ./topk --directory-path ./full-text-data/ --query "*" | sqlite-utils insert --not-null key --not-null doc_count topk.db hashtag -
+  ./target/{{profile}}/topk --directory-path ./tantivy-data --query "*" | sqlite-utils insert --not-null key --not-null doc_count topk.db hashtag -
+
+docker-topk-db:
+  ./target/{{profile}}/topk --directory-path ./tantivy-data --query "*" | docker run -i --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp  ghcr.io/williamjacksn/sqlite-utils:latest insert --not-null key --not-null doc_count topk.db hashtag -
 
 _prepare-db-web:
   cd ./cocktail-db-web && cargo sqlx prepare --merged
 
 prepare: _prepare-db-web
 
-# study clear:
-#   ./target/{{profile}}/cocktail study clear
+study clear:
+  ./target/{{profile}}/cocktail study clear

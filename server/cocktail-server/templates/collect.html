@@ -60,6 +60,12 @@
                 <!-- Les mots-clés seront ajoutés ici dynamiquement -->
             </div>
     
+            <!-- Nombre de tweets à collecter -->
+            <div class="input-group">
+                <label for="tweetLimit">Nombre de tweets à collecter par mot-clé</label>
+                <input type="number" id="tweetLimit" min="1" max="1000" value="10">
+            </div>
+    
             <!-- Sélection des réseaux sociaux -->
             <div class="social-options">
                 <label>Réseaux sociaux</label>
@@ -76,12 +82,17 @@
             </div>
     
             <button id="startCollect">Démarrer la collecte</button>
+            <button id="deleteCollect" class="delete-button">Supprimer les données collectées</button>
+            <button id="updateData" class="update-button">Mettre à jour les données</button>
         </div>
       </div>
     </section>
   </main>
 
   {% include "footer.html" %}
+  
+  <!-- Ajout du script JavaScript -->
+  <script src="/static/js/collect.js"></script>
 </body>
 
 </html>

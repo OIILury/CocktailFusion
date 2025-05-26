@@ -18,7 +18,7 @@ pub mod paths;
 pub mod projects;
 pub mod study;
 pub mod csv_import;
-pub mod collect;
+pub mod automation;
 
 #[derive(Debug, Serialize)]
 pub struct Context {

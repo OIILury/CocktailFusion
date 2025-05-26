@@ -1,4 +1,4 @@
-use std::{fmt, path::Path, vec};
+use std::{fmt, path::Path, vec, collections::HashMap};
 
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use serde::Serializer;
@@ -186,8 +186,8 @@ where
 {
   let schema = index.schema();
   let searcher = index.reader()?.searcher();
-  let text = schema.get_field("text").unwrap();
-  let query_parser = QueryParser::for_index(index, vec![text]);
+  let hashtags = schema.get_field("hashtags").unwrap();
+  let query_parser = QueryParser::for_index(index, vec![hashtags]);
   let q = query_parser.parse_query(query.as_ref())?;
   let agg_req: Aggregations = vec![(
     "hashtags".to_string(),
@@ -206,25 +206,41 @@ where
   )]
   .into_iter()
   .collect();
+
   let collector = AggregationCollector::from_aggs(agg_req);
   let agg_res = searcher.search(&q, &collector)?;
-  let a = {
-    if let tantivy::aggregation::agg_result::AggregationResult::BucketResult(br) =
-      agg_res.0.get("hashtags").unwrap()
-    {
-      match br {
-        tantivy::aggregation::agg_result::BucketResult::Terms {
-          buckets,
-          sum_other_doc_count: _,
-          doc_count_error_upper_bound: _,
-        } => buckets.clone(), // .iter().take(10).collect(),
-        _ => vec![],
-      }
-    } else {
-      vec![]
+  
+  let buckets = if let tantivy::aggregation::agg_result::AggregationResult::BucketResult(br) =
+    agg_res.0.get("hashtags").unwrap()
+  {
+    match br {
+      tantivy::aggregation::agg_result::BucketResult::Terms {
+        buckets,
+        sum_other_doc_count: _,
+        doc_count_error_upper_bound: _,
+      } => buckets.clone(),
+      _ => Vec::new(),
     }
+  } else {
+    Vec::new()
   };
-  let s = serde_json::to_string_pretty(&a)?;
+
+  // Transformer les buckets en format compatible avec sqlite-utils
+  #[derive(serde::Serialize)]
+  struct HashtagEntry {
+    key: String,
+    doc_count: u64,
+  }
+
+  let formatted_buckets: Vec<HashtagEntry> = buckets
+    .into_iter()
+    .map(|bucket| HashtagEntry {
+      key: bucket.key.to_string(),
+      doc_count: bucket.doc_count,
+    })
+    .collect();
+
+  let s = serde_json::to_string(&formatted_buckets)?;
   Ok(s)
 }
 

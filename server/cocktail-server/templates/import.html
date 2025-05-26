@@ -45,15 +45,30 @@
                 <label for="importName">Nom de l'importation</label>
                 <input type="text" id="importName" placeholder="Entrez le nom de votre importation">
             </div>
+
+            <!-- Mode d'importation -->
+            <div class="import-mode">
+                <label>Mode d'importation</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="singleFileMode" name="importMode" value="single" checked>
+                        <label for="singleFileMode">Fichier unique (toutes les tables)</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="multipleFilesMode" name="importMode" value="multiple">
+                        <label for="multipleFilesMode">Fichiers multiples (une table par fichier)</label>
+                    </div>
+                </div>
+            </div>
     
             <!-- Zone de dépôt de fichiers -->
             <div class="file-drop-zone" id="fileDropZone">
                 <div class="file-drop-content">
                     <span class="icon-upload"></span>
-                    <p>Glissez et déposez vos fichiers CSV ici</p>
+                    <p id="dropZoneText">Glissez et déposez votre fichier CSV ici</p>
                     <p class="file-drop-hint">ou</p>
                     <label for="fileInput" class="file-input-label">Parcourir les fichiers</label>
-                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                    <input type="file" id="fileInput" accept=".csv" multiple style="display: none;">
                 </div>
             </div>
 
@@ -92,64 +107,87 @@
         const fileInput = document.getElementById('fileInput');
         const selectedFiles = document.getElementById('selectedFiles');
         const startImport = document.getElementById('startImport');
-        let currentFile = null;
+        const singleFileMode = document.getElementById('singleFileMode');
+        const multipleFilesMode = document.getElementById('multipleFilesMode');
+        const dropZoneText = document.getElementById('dropZoneText');
+        let currentFiles = [];
+
+        // Gestion du mode d'importation
+        singleFileMode.addEventListener('change', () => {
+            dropZoneText.textContent = 'Glissez et déposez votre fichier CSV ici';
+            fileInput.removeAttribute('multiple');
+            currentFiles = [];
+            selectedFiles.innerHTML = '';
+        });
+
+        multipleFilesMode.addEventListener('change', () => {
+            dropZoneText.textContent = 'Glissez et déposez vos fichiers CSV ici';
+            fileInput.setAttribute('multiple', '');
+            currentFiles = [];
+            selectedFiles.innerHTML = '';
+        });
 
         // Gestion du drag and drop
         fileDropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             fileDropZone.classList.add('dragover');
-            console.log('Fichier survolant la zone de dépôt');
+            console.log('Fichier(s) survolant la zone de dépôt');
         });
 
         fileDropZone.addEventListener('dragleave', () => {
             fileDropZone.classList.remove('dragover');
-            console.log('Fichier quittant la zone de dépôt');
+            console.log('Fichier(s) quittant la zone de dépôt');
         });
 
         fileDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             fileDropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            console.log('Fichier déposé:', file.name);
-            handleFile(file);
+            const files = Array.from(e.dataTransfer.files);
+            console.log('Fichiers déposés:', files.map(f => f.name));
+            handleFiles(files);
         });
 
         // Gestion du clic sur le bouton "Parcourir"
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            console.log('Fichier sélectionné:', file.name);
-            handleFile(file);
+            const files = Array.from(e.target.files);
+            console.log('Fichiers sélectionnés:', files.map(f => f.name));
+            handleFiles(files);
         });
 
-        // Gestion du fichier sélectionné
-        function handleFile(file) {
-            if (file && (file.type === 'text/csv' || file.type === 'application/vnd.ms-excel')) {
-                console.log('Fichier CSV valide:', {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type
-                });
-                currentFile = file;
-                
-                // Mettre le nom du fichier dans l'input importName
-                const importNameInput = document.getElementById('importName');
-                // Enlever l'extension .csv du nom du fichier
-                const fileNameWithoutExtension = file.name.replace(/\.csv$/i, '');
-                importNameInput.value = fileNameWithoutExtension;
-                
-                selectedFiles.innerHTML = `
-                    <div class="selected-file">
-                        <span class="file-name">${file.name}</span>
-                        <span class="file-size">${formatFileSize(file.size)}</span>
-                    </div>
-                `;
-            } else {
-                console.error('Fichier invalide:', {
-                    name: file?.name,
-                    type: file?.type
-                });
-                alert('Veuillez sélectionner un fichier CSV valide');
+        // Gestion des fichiers sélectionnés
+        function handleFiles(files) {
+            const validFiles = files.filter(file => 
+                file.type === 'text/csv' || file.type === 'application/vnd.ms-excel'
+            );
+
+            if (validFiles.length === 0) {
+                console.error('Aucun fichier CSV valide');
+                alert('Veuillez sélectionner au moins un fichier CSV valide');
+                return;
             }
+
+            if (singleFileMode.checked && validFiles.length > 1) {
+                console.error('Trop de fichiers pour le mode fichier unique');
+                alert('Veuillez sélectionner un seul fichier en mode fichier unique');
+                return;
+            }
+
+            currentFiles = validFiles;
+            
+            // Mettre le nom du premier fichier dans l'input importName si en mode fichier unique
+            if (singleFileMode.checked) {
+                const importNameInput = document.getElementById('importName');
+                const fileNameWithoutExtension = validFiles[0].name.replace(/\.csv$/i, '');
+                importNameInput.value = fileNameWithoutExtension;
+            }
+            
+            // Afficher les fichiers sélectionnés
+            selectedFiles.innerHTML = validFiles.map(file => `
+                <div class="selected-file">
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                </div>
+            `).join('');
         }
 
         // Formatage de la taille du fichier
@@ -165,9 +203,9 @@
         startImport.addEventListener('click', async () => {
             console.log('Début de l\'importation');
             
-            if (!currentFile) {
+            if (currentFiles.length === 0) {
                 console.error('Aucun fichier sélectionné');
-                alert('Veuillez sélectionner un fichier CSV');
+                alert('Veuillez sélectionner au moins un fichier CSV');
                 return;
             }
 
@@ -179,18 +217,22 @@
             }
 
             console.log('Préparation de l\'importation:', {
-                fileName: currentFile.name,
-                importName: importName,
-                fileSize: formatFileSize(currentFile.size)
+                files: currentFiles.map(f => f.name),
+                importName: importName
             });
 
             const formData = new FormData();
-            formData.append('file', currentFile);
+            currentFiles.forEach(file => {
+                formData.append('files', file);
+            });
             formData.append('name', importName);
+            formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
 
             try {
                 console.log('Envoi de la requête d\'importation');
-                const response = await fetch('/api/import/csv', {
+                const projectId = '{{ project_id }}';
+                console.log('ID du projet:', projectId);
+                const response = await fetch(`/api/import/csv?project_id=${projectId}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -207,7 +249,7 @@
                     // Réinitialiser le formulaire
                     document.getElementById('importName').value = '';
                     selectedFiles.innerHTML = '';
-                    currentFile = null;
+                    currentFiles = [];
                 } else {
                     console.error('Erreur lors de l\'importation:', {
                         status: response.status,

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sass:build": "gulp sass",
+    "sass:build": "npx gulp sass",
     "sass:watch": "gulp watch",
     "server:clean": "rimraf ./_site",
     "server:serve": "eleventy --serve --input=templates",

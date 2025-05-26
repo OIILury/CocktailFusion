@@ -1,4 +1,6 @@
 use std::{fs, path::PathBuf, str::FromStr};
+use glob::glob;
+use tracing;
 
 use axum::{
   extract::State,
@@ -20,6 +22,34 @@ use crate::{
   AppState,
 };
 
+fn find_latest_tweets_file() -> Result<String, WebError> {
+    let pattern = "tweets_collecte_*.json.gz";
+    let mut latest_file = None;
+    let mut latest_date = chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap();
+
+    tracing::info!("Recherche du dernier fichier tweets_collecte avec le pattern: {}", pattern);
+
+    for entry in glob(pattern).map_err(|e| WebError::WTFError(e.to_string()))? {
+        match entry {
+            Ok(path) => {
+                let file_name = path.file_name().unwrap().to_str().unwrap();
+                let date_str = file_name.replace("tweets_collecte_", "").replace(".json.gz", "");
+                if let Ok(date) = chrono::NaiveDate::parse_from_str(&date_str, "%Y_%m_%d") {
+                    if date > latest_date {
+                        latest_date = date;
+                        latest_file = Some(file_name.to_string());
+                    }
+                }
+            }
+            Err(e) => return Err(WebError::WTFError(e.to_string())),
+        }
+    }
+
+    let file = latest_file.ok_or_else(|| WebError::WTFError("No tweets file found".to_string()))?;
+    tracing::info!("Dernier fichier tweets_collecte trouvé: {}", file);
+    Ok(file)
+}
+
 pub async fn analyse(
   paths::ProjectAnalysis { project_id }: paths::ProjectAnalysis,
   AuthenticatedUser {
@@ -32,6 +62,8 @@ pub async fn analyse(
 ) -> Result<impl IntoResponse, WebError> {
   let project = cocktail_db_web::project(&state.db, project_id.to_hyphenated(), &user_id).await?;
 
+  tracing::info!("Début de l'analyse pour le projet: {}", project_id);
+
   let parsed_criteria = ParsedProjectCriteria::from(&project);
 
   let tweets = fts::search_tweets_for_analysis(
@@ -43,8 +75,7 @@ pub async fn analyse(
     &project.request_params,
   )?;
 
-  let directory_path =
-    PathBuf::from_str(format!("project-data/{}", project_id.to_string()).as_str())?;
+  let directory_path = PathBuf::from_str(format!("project-data/{}", project_id.to_string()).as_str())?;
   let _ = fs::remove_dir_all(&directory_path);
   let tweets_count: i64 = *&tweets.len() as i64;
   let mut authors_list: Vec<String> = tweets.iter().map(|t| t.user_id.to_string()).collect();
@@ -56,6 +87,34 @@ pub async fn analyse(
   create_index_config(&directory_path)?;
 
   copy_index_data(&directory_path, tweets)?;
+
+  // Maintenant que le dossier est créé, on peut exécuter la commande d'ingestion
+  let latest_tweets_file = find_latest_tweets_file()?;
+  
+  let command = format!(
+    "gunzip -c {} | ./target/debug/cocktail index ingest --directory-path {}",
+    latest_tweets_file,
+    directory_path.to_str().unwrap()
+  );
+  tracing::info!("Exécution de la commande d'ingestion: {}", command);
+  
+  let output = tokio::process::Command::new("sh")
+    .arg("-c")
+    .arg(&command)
+    .output()
+    .await
+    .map_err(|e| WebError::WTFError(e.to_string()))?;
+
+  if !output.status.success() {
+    let error = format!(
+      "Ingestion failed: {}",
+      String::from_utf8_lossy(&output.stderr)
+    );
+    tracing::error!("{}", error);
+    return Err(WebError::WTFError(error));
+  }
+
+  tracing::info!("Commande d'ingestion terminée avec succès pour le projet: {}", project_id);
 
   let graph_generator = cocktail_graph_utils::GraphGenerator::new(
     state.database_url,

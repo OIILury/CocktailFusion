@@ -5,13 +5,13 @@ use axum::{
 use chrono::{DateTime, Utc, Local};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use std::process::Command;
+
 
 use crate::{
     error::WebError,
     models::auth::AuthenticatedUser,
     routes::paths::{ProjectCollect, StartCollection, DeleteCollection, UpdateCollection},
+    routes::automation::run_automation_pipeline,
     AppState,
 };
 
@@ -124,10 +124,11 @@ pub struct CollectionResponse {
 struct BlueskyCollector {
     client: reqwest::Client,
     pool: sqlx::PgPool,
+    schema_name: String,
 }
 
 impl BlueskyCollector {
-    async fn new(handle: &str, app_password: &str) -> Result<Self, WebError> {
+    async fn new(handle: &str, app_password: &str, schema_name: String) -> Result<Self, WebError> {
         // Authenticate to get JWT token
         let auth_client = reqwest::Client::new();
         let auth_response = auth_client
@@ -162,7 +163,7 @@ impl BlueskyCollector {
             .await
             .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
-        Ok(Self { client, pool })
+        Ok(Self { client, pool, schema_name })
     }
 
     async fn search_posts(&self, keyword: &str, limit: usize) -> Result<Vec<Post>, WebError> {
@@ -221,18 +222,18 @@ impl BlueskyCollector {
                                text: &str, source: &str, lang: &str, repost_count: i64, 
                                reply_count: i64, quote_count: i64) -> Result<(), WebError> {
         sqlx::query(
-            r#"
-            INSERT INTO cockt.tweet (
+            &format!(r#"
+            INSERT INTO {}.tweet (
                 id, created_at, published_time, user_id, user_name,
                 user_screen_name, text, source, language,
                 retweet_count, reply_count, quote_count
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (id) DO NOTHING
-            "#
+            "#, self.schema_name)
         )
         .bind(tweet_id)
         .bind(created_at.format("%Y-%m-%d").to_string())
-        .bind(created_at.timestamp())
+        .bind(created_at.timestamp_millis())
         .bind(author.did.clone())
         .bind(author.display_name.as_deref().unwrap_or_default())
         .bind(author.handle.clone())
@@ -288,11 +289,11 @@ impl BlueskyCollector {
             
             // Insert reply reference
             sqlx::query(
-                r#"
-                INSERT INTO cockt.reply (tweet_id, in_reply_to_tweet_id)
+                &format!(r#"
+                INSERT INTO {}.reply (tweet_id, in_reply_to_tweet_id)
                 VALUES ($1, $2)
                 ON CONFLICT DO NOTHING
-                "#
+                "#, self.schema_name)
             )
             .bind(&tweet_id)
             .bind(&parent_tweet_id)
@@ -323,11 +324,11 @@ impl BlueskyCollector {
                             
                             // Insert quote reference
                             sqlx::query(
-                                r#"
-                                INSERT INTO cockt.quote (tweet_id, quoted_tweet_id)
+                                &format!(r#"
+                                INSERT INTO {}.quote (tweet_id, quoted_tweet_id)
                                 VALUES ($1, $2)
                                 ON CONFLICT DO NOTHING
-                                "#
+                                "#, self.schema_name)
                             )
                             .bind(&tweet_id)
                             .bind(&quoted_tweet_id)
@@ -348,11 +349,11 @@ impl BlueskyCollector {
                         "app.bsky.richtext.facet#tag" => {
                             if let Some(tag) = &feature.tag {
                                 sqlx::query(
-                                    r#"
-                                    INSERT INTO cockt.tweet_hashtag (tweet_id, hashtag)
+                                    &format!(r#"
+                                    INSERT INTO {}.tweet_hashtag (tweet_id, hashtag)
                                     VALUES ($1, $2)
                                     ON CONFLICT DO NOTHING
-                                    "#
+                                    "#, self.schema_name)
                                 )
                                 .bind(&tweet_id)
                                 .bind(tag)
@@ -364,11 +365,11 @@ impl BlueskyCollector {
                         "app.bsky.richtext.facet#link" => {
                             if let Some(uri) = &feature.uri {
                                 sqlx::query(
-                                    r#"
-                                    INSERT INTO cockt.tweet_url (tweet_id, url)
+                                    &format!(r#"
+                                    INSERT INTO {}.tweet_url (tweet_id, url)
                                     VALUES ($1, $2)
                                     ON CONFLICT DO NOTHING
-                                    "#
+                                    "#, self.schema_name)
                                 )
                                 .bind(&tweet_id)
                                 .bind(uri)
@@ -405,6 +406,89 @@ pub async fn collect(
     hbs_registry.render("collect", &data).unwrap()
 }
 
+// Helper function to create tables for a schema
+async fn create_collection_tables(pool: &sqlx::PgPool, schema_name: &str) -> Result<(), WebError> {
+    // Create schema if it doesn't exist
+    sqlx::query(&format!("CREATE SCHEMA IF NOT EXISTS {}", schema_name))
+        .execute(pool)
+        .await
+        .map_err(|e| WebError::WTFError(format!("Failed to create schema: {}", e)))?;
+
+    // Table tweet
+    sqlx::query(&format!(
+        r#"
+        CREATE TABLE IF NOT EXISTS {}.tweet (
+            id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            published_time BIGINT NOT NULL,
+            user_id TEXT NOT NULL,
+            user_name TEXT NOT NULL,
+            user_screen_name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            source TEXT,
+            language TEXT NOT NULL,
+            coordinates_longitude TEXT,
+            coordinates_latitude TEXT,
+            possibly_sensitive BOOLEAN,
+            retweet_count BIGINT NOT NULL DEFAULT 0,
+            reply_count BIGINT NOT NULL DEFAULT 0,
+            quote_count BIGINT NOT NULL DEFAULT 0
+        )
+        "#,
+        schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create tweet table: {}", e)))?;
+
+    // Table tweet_hashtag
+    sqlx::query(&format!(
+        "CREATE TABLE IF NOT EXISTS {}.tweet_hashtag (tweet_id TEXT REFERENCES {}.tweet(id), hashtag TEXT)",
+        schema_name, schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create tweet_hashtag table: {}", e)))?;
+
+    // Table tweet_url
+    sqlx::query(&format!(
+        "CREATE TABLE IF NOT EXISTS {}.tweet_url (tweet_id TEXT REFERENCES {}.tweet(id), url TEXT)",
+        schema_name, schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create tweet_url table: {}", e)))?;
+
+    // Table retweet
+    sqlx::query(&format!(
+        "CREATE TABLE IF NOT EXISTS {}.retweet (retweeted_tweet_id TEXT REFERENCES {}.tweet(id))",
+        schema_name, schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create retweet table: {}", e)))?;
+
+    // Table reply
+    sqlx::query(&format!(
+        "CREATE TABLE IF NOT EXISTS {}.reply (tweet_id TEXT REFERENCES {}.tweet(id), in_reply_to_tweet_id TEXT REFERENCES {}.tweet(id))",
+        schema_name, schema_name, schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create reply table: {}", e)))?;
+
+    // Table quote
+    sqlx::query(&format!(
+        "CREATE TABLE IF NOT EXISTS {}.quote (tweet_id TEXT REFERENCES {}.tweet(id), quoted_tweet_id TEXT REFERENCES {}.tweet(id))",
+        schema_name, schema_name, schema_name
+    ))
+    .execute(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to create quote table: {}", e)))?;
+
+    Ok(())
+}
+
 // Handler for starting a collection
 pub async fn start_collection(
     path: StartCollection,
@@ -412,14 +496,26 @@ pub async fn start_collection(
     _authuser: AuthenticatedUser,
     Json(req): Json<CollectionRequest>,
 ) -> Result<impl IntoResponse, WebError> {
+    // Create schema name based on current date
+    let schema_name = format!("collect_{}", Local::now().format("%Y%m%d"));
+    
+    // Get database connection
+    let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()))
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
+
+    // Create tables for the schema
+    create_collection_tables(&pool, &schema_name).await?;
+
     // Get Bluesky credentials from environment
     let handle = std::env::var("BLUESKY_HANDLE")
         .map_err(|_| WebError::WTFError("BLUESKY_HANDLE not set".to_string()))?;
     let app_password = std::env::var("BLUESKY_APP_PASSWORD")
         .map_err(|_| WebError::WTFError("BLUESKY_APP_PASSWORD not set".to_string()))?;
     
-    // Create collector
-    let collector = BlueskyCollector::new(&handle, &app_password).await?;
+    // Create collector with schema name
+    let collector = BlueskyCollector::new(&handle, &app_password, schema_name.clone()).await?;
     
     let mut total_posts = 0;
     
@@ -441,22 +537,18 @@ pub async fn start_collection(
         }
     }
     
-    // Save collection metadata to project
-    sqlx::query(
-        r#"
-        INSERT INTO cockt.collection (
-            project_id, name, keywords, networks, post_count
-        ) VALUES ($1, $2, $3, $4, $5)
-        "#
-    )
-    .bind(path.project_id)
-    .bind(&req.name)
-    .bind(&req.keywords)
-    .bind(&req.networks)
-    .bind(total_posts as i32)
-    .execute(&collector.pool)
-    .await
-    .map_err(|e| WebError::WTFError(format!("Failed to save collection metadata: {}", e)))?;
+    // Run automation pipeline if we have collected data
+    if total_posts > 0 {
+        tracing::info!("Starting automation pipeline for schema {}", schema_name);
+        if let Err(e) = run_automation_pipeline(&schema_name, Some(path.project_id.to_string())).await {
+            tracing::error!("Error during automation pipeline: {}", e);
+            return Ok(Json(CollectionResponse {
+                success: false,
+                message: format!("Collection successful but automation failed: {}", e),
+                count: total_posts,
+            }));
+        }
+    }
     
     Ok(Json(CollectionResponse {
         success: true,
@@ -467,7 +559,7 @@ pub async fn start_collection(
 
 // Handler for deleting collected data
 pub async fn delete_collection(
-    path: DeleteCollection,
+    _path: DeleteCollection,
     State(_state): State<AppState>,
     _authuser: AuthenticatedUser,
 ) -> Result<impl IntoResponse, WebError> {
@@ -477,34 +569,20 @@ pub async fn delete_collection(
         .await
         .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
-    // Truncate all related tables
-    sqlx::query(
-        r#"
-        TRUNCATE TABLE
-            cockt.quote,
-            cockt.reply,
-            cockt.retweet,
-            cockt.tweet,
-            cockt.tweet_hashtag,
-            cockt.tweet_url
-        CASCADE;
-        "#
-    )
-    .execute(&pool)
-    .await
-    .map_err(|e| WebError::WTFError(format!("Failed to truncate tables: {}", e)))?;
+    // Get all collection schemas (collect_YYYYMMDD pattern)
+    let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%'";
+    let collections = sqlx::query_scalar::<_, String>(schema_query)
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| WebError::WTFError(format!("Failed to get collection schemas: {}", e)))?;
 
-    // Delete collection metadata
-    sqlx::query(
-        r#"
-        DELETE FROM cockt.collection 
-        WHERE project_id = $1
-        "#
-    )
-    .bind(path.project_id)
-    .execute(&pool)
-    .await
-    .map_err(|e| WebError::WTFError(format!("Failed to delete collection metadata: {}", e)))?;
+    // Drop each collection schema
+    for schema_name in &collections {
+        sqlx::query(&format!("DROP SCHEMA IF EXISTS {} CASCADE", schema_name))
+            .execute(&pool)
+            .await
+            .map_err(|e| WebError::WTFError(format!("Failed to drop schema {}: {}", schema_name, e)))?;
+    }
 
     Ok(Json(CollectionResponse {
         success: true,
@@ -518,80 +596,30 @@ pub async fn update_collection(
     State(_state): State<AppState>,
     _authuser: AuthenticatedUser,
 ) -> Result<impl IntoResponse, WebError> {
-    let today = Local::now().format("%Y-%m-%d").to_string();
-    let date_str = today.replace("-", "_");
+    // Get the most recent collection schema (collect_YYYYMMDD pattern)
+    let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()))
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
+
+    let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%' ORDER BY schema_name DESC LIMIT 1";
+    let schema_name = sqlx::query_scalar::<_, String>(schema_query)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| WebError::WTFError(format!("Failed to get collection schema: {}", e)))?
+        .unwrap_or_else(|| format!("collect_{}", Local::now().format("%Y%m%d")));
+
+    tracing::info!("Starting automation pipeline for schema {} and project {}", schema_name, path.project_id);
     
-    // Créer le dossier collecte s'il n'existe pas
-    std::fs::create_dir_all("collecte").map_err(|e| WebError::WTFError(format!("Failed to create collecte directory: {}", e)))?;
-    
-    // Générer le JSON depuis la BDD
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(format!("echo \"{}\" | ./target/debug/tweets-from-sql-to-json | gzip -c > collecte/tweets_collecte_{}.json.gz", today, date_str))
-        .output()
-        .map_err(|e| WebError::WTFError(format!("Failed to generate JSON: {}", e)))?;
-    
-    if !output.status.success() {
-        return Err(WebError::WTFError(format!("Failed to generate JSON: {}", String::from_utf8_lossy(&output.stderr))));
-    }
-    
-    // Supprimer les anciens dossiers d'indexation
-    let _ = std::fs::remove_dir_all("full-text-data");
-    let _ = std::fs::remove_dir_all("tantivy-data");
-    
-    // Créer le nouvel index
-    let output = Command::new("./target/debug/cocktail")
-        .args(&["index", "create", "--directory-path", "tantivy-data"])
-        .output()
-        .map_err(|e| WebError::WTFError(format!("Failed to create index: {}", e)))?;
-    
-    if !output.status.success() {
-        return Err(WebError::WTFError(format!("Failed to create index: {}", String::from_utf8_lossy(&output.stderr))));
-    }
-    
-    // Ingérer les tweets dans l'index
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(format!("gunzip -c collecte/tweets_collecte_{}.json.gz | ./target/debug/cocktail index ingest --directory-path tantivy-data", date_str))
-        .output()
-        .map_err(|e| WebError::WTFError(format!("Failed to ingest tweets: {}", e)))?;
-    
-    if !output.status.success() {
-        return Err(WebError::WTFError(format!("Failed to ingest tweets: {}", String::from_utf8_lossy(&output.stderr))));
-    }
-    
-    // Supprimer l'ancienne base topk
-    let _ = std::fs::remove_file("topk.db");
-    
-    // Générer les top hashtags et les insérer dans la base SQLite
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "./target/debug/topk --directory-path ./tantivy-data/ --query '*' | sqlite-utils insert --not-null key --not-null doc_count topk.db hashtag -"
-        ))
-        .output()
-        .map_err(|e| WebError::WTFError(format!("Failed to generate and insert hashtags: {}", e)))?;
-    
-    if !output.status.success() {
-        return Err(WebError::WTFError(format!("Failed to generate and insert hashtags: {}", String::from_utf8_lossy(&output.stderr))));
-    }
-    
-    // Calculer et insérer les cooccurrences
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "./target/debug/topk_cooccurence --pg-database-url postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg --schema cockt | sqlite-utils insert --not-null hashtag1 --not-null hashtag2 --not-null count topk.db hashtag_cooccurence -"
-        ))
-        .output()
-        .map_err(|e| WebError::WTFError(format!("Failed to calculate and insert cooccurrences: {}", e)))?;
-    
-    if !output.status.success() {
-        return Err(WebError::WTFError(format!("Failed to calculate and insert cooccurrences: {}", String::from_utf8_lossy(&output.stderr))));
+    // Use the automation pipeline to update data
+    if let Err(e) = run_automation_pipeline(&schema_name, Some(path.project_id.to_string())).await {
+        tracing::error!("Error during automation pipeline: {}", e);
+        return Err(WebError::WTFError(format!("Failed to update data: {}", e)));
     }
     
     Ok(Json(CollectionResponse {
         success: true,
-        message: "Successfully updated all data".to_string(),
+        message: "Successfully updated all data using automation pipeline".to_string(),
         count: 0,
     }))
 } 

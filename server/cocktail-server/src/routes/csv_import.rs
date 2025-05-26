@@ -443,7 +443,7 @@ fn determine_table_name(header: &str) -> String {
 
 async fn process_tweet_record(pool: &PgPool, schema_name: &str, fields: &[&str]) -> Result<(), Box<dyn Error>> {
     let created_at = chrono::NaiveDateTime::parse_from_str(fields[1], "%Y-%m-%d %H:%M:%S")?;
-    let published_time = created_at.timestamp();
+    let published_time = created_at.timestamp_millis();
 
     // Insérer d'abord le tweet
     sqlx::query(&format!(

@@ -1,0 +1,15 @@
+<div class="panel" {% if active_page=="collect" || active_page=="import" %}
+  style="display: block;" {% endif %}>
+  <a href="{{ collect_path }}" class='aside__item {% if active_page == "collect" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-gear"></span>
+      <span class="aside__item__text">Critères de collecte</span>
+    </div>
+  </a>
+  <a href="{{ import_path }}" class='aside__item {% if active_page == "import" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-download"></span>
+      <span class="aside__item__text">Réaliser une importation</span>
+    </div>
+  </a>
+</div>

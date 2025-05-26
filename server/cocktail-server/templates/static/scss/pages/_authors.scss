@@ -1,0 +1,122 @@
+.authors-filter {
+  label {
+    flex-direction: row;
+    align-items: center;
+
+    span {
+      text-transform: none;
+    }
+  }
+}
+
+.tweets-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem 0;
+}
+
+.tweet-line {
+  display: grid;
+  grid-template-areas: "identity followers tweetLink tweetProfil";
+  grid-template-columns: 3fr 1.5fr 1fr 1fr;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0.5rem;
+  border: 1px solid $gris;
+  border-radius: 0.5rem;
+
+  @media (max-width: 1110px) {
+    grid-template-columns: 3fr 1.5fr min-content min-content;
+  }
+}
+
+.tweet__identity {
+  grid-area: identity;
+  display: grid;
+  grid-template-areas: "avatar user at date";
+  grid-template-columns: min-content max-content max-content max-content;
+  align-items: center;
+  gap: 1rem;
+
+  @media (max-width: 1280px) {
+    grid-template-areas: "avatar user user" "avatar at date";
+    grid-template-columns: auto auto auto;
+  }
+
+  @media (max-width: 1110px) {
+    grid-template-areas: "avatar user" "avatar at" "avatar date";
+    grid-template-columns: auto auto auto;
+  }
+}
+
+.tweet__name {
+  grid-area: user;
+  font-weight: bold;
+}
+
+.tweet__at,
+.tweet__date {
+  color: $gris2;
+}
+
+.tweet__avatar {
+  grid-area: avatar;
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 50%;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.tweet__at {
+  grid-area: at;
+}
+
+.tweet__date {
+  grid-area: date;
+}
+
+.tweet__followers {
+  grid-area: followers;
+  text-align: center;
+}
+
+.tweet__link {
+  grid-area: tweetLink;
+}
+
+.tweet__profil {
+  grid-area: tweetProfil;
+
+  a {
+    color: $noir;
+  }
+}
+
+@media (max-width: 1100px) {
+  .tweet__link,
+  .tweet__profil {
+    text-align: center;
+
+    [class*="icon"] + span {
+      display: none;
+    }
+  }
+}
+
+.icon-questioning {
+  vertical-align: bottom;
+}
+
+.pagination {
+  justify-content: center;
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+}

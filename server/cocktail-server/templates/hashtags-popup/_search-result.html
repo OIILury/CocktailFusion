@@ -1,0 +1,35 @@
+<turbo-stream action="update" target="hashtag-search-result">
+  <template>
+    {% if hashtags.len() == 0 %}
+    <tr class="notSelected">
+      <td colspan="3">
+        Aucun résultat. Essayez "vegan" par exemple
+      </td>
+    </tr>
+    {% endif %}
+
+    {% for hashtag in hashtags %}
+    <tr>
+      <td>{{ hashtag.name }}</td>
+      <td>{{ hashtag.count }}</td>
+      <td>
+        <!-- <button class="button--text"><span class="icon-poubelle-x"></span> Retirer de ma sélection</button> -->
+        <!-- <button class="button--text"><span class="icon-plus"></span>Ajouter à ma sélection</button> -->
+        {% if exclude_popup_style %}
+        {% include "_includes/_exclude_hashtag_toggle_form.html" %}
+        {% else %}
+        {% include "_includes/_hashtag_toggle_form.html" %}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </template>
+</turbo-stream>
+
+<turbo-stream action="replace" target="search">
+  <template>
+    <input form="search-form" autofocus autocomplete="off" type="search" size="50" name="q" id="search"
+      placeholder="inscrivez un mot-clé ou un #hashtag" value="{{ q }}"
+      x-init="$nextTick(() => { $el.focus(); $el.select() })">
+  </template>
+</turbo-stream>

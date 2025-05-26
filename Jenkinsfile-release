@@ -1,0 +1,47 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent {
+    label 'docker'
+  }
+  environment {
+    NEXUS_REPO = 'https://nexus3-ovh.priv.atolcd.com/repository/uneal/datahub_core'
+  }
+  stages {
+    stage('build') {
+      steps {
+        script {
+          def nodejs = docker.image('node:14-alpine')
+          nodejs.inside {
+            sh 'yarn global add gulp'
+            sh 'cd cocktail-js && yarn install --frozen-lockfile && yarn build'
+          }
+          def rust_image = docker.image('ekidd/rust-musl-builder:1.50.0')
+          rust_image.inside {
+            sh 'cargo deb --manifest-path server/cocktail-rs/Cargo.toml -p cocktail-rs'
+          }
+        }
+      }
+    }
+    stage('archive') {
+        steps {
+            archiveArtifacts artifacts: 'server/target/debian/*.deb', onlyIfSuccessful: true
+            zulipNotification stream: 'Cocktail', topic: 'builds'
+        }
+    }
+    // stage('nexus3') {
+    //     steps {
+    //         withCredentials([usernameColonPassword(credentialsId: 'nexus3-jenkins', variable: 'NEXUS3_AUTH')]) {
+    //             sh 'curl -v --user "$NEXUS3_AUTH" --upload-file ./data_hub-${BUILD_NUMBER}.tar.gz $NEXUS_REPO/data_hub-${BUILD_NUMBER}.tar.gz'
+    //         }
+    //         sh 'rm -rf ./data_hub_releases/'
+    //         zulipNotification stream: 'datacore-uneal', topic: 'builds-datahub'
+    //     }
+    // }
+  }
+  post {
+      always {
+          deleteDir()
+      }
+  }
+}

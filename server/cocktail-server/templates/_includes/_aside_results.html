@@ -1,0 +1,159 @@
+<aside class="aside-graphique" id="aside-hashtags-chart">
+  <div class="aside-graphique__top" x-data>
+    <h3 class="subtitle">Filtres</h3>
+    <form action="{{results_path}}/{{tab}}/{{ aside_hashtag_tab }}" method="post" class="visibility-form">
+      <input type="hidden" name="hidden" value="{{!hidden}}" />
+      <input type="hidden" name="query_page" value="{{ page }}" />
+      <input type="hidden" name="query_date" value="{% if date != None %}{{ date.unwrap() }}{% endif %}" />
+      <input type="hidden" name="query_hashtag"
+        value="{% match hashtag %}{% when Some with(val) %}{{ val }}{% when None %}{%endmatch%}" />
+      <input type="hidden" name="query_auteur" value="{{ user_screen_name }}" />
+      <input type="hidden" name="query_ordre" value="{{ order }}" />
+
+      {% if aside_hashtag_tab == "project" %}
+      <input type="hidden" name="hashtag" value="{% for frequence in frequences %}{{frequence.hashtag}},{% endfor %}" />
+      <input type="hidden" name="author" value="">
+      {% else if aside_hashtag_tab == "top" %}
+      <input type="hidden" name="hashtag"
+        value="{% for frequence in frequences_topk %}{{frequence.hashtag}},{%endfor%}" />
+      <input type="hidden" name="author" value="">
+      {% else if aside_hashtag_tab == "auteur" %}
+      <input type="hidden" name="author" value="{% for author in authors %}{{author.user_screen_name}},{% endfor %}" />
+      <input type="hidden" name="hashtag" value="">
+      {% else if aside_hashtag_tab == "cooccurence" %}
+      <input type="hidden" name="hashtag"
+        value="{% for cooccurence in frequences_cooccurence %}{{cooccurence.label}},{% endfor %}" />
+      <input type="hidden" name="author" value="">
+      {% endif %}
+
+      <button class=" button--visibility" type="submit">
+        {% if hidden %} <h3 class="subtitle">Tout afficher</h3> {% else %} <h3 class="subtitle">Tout cacher</h3>{% endif
+        %}
+      </button>
+    </form>
+
+  </div>
+  <div class="legend-graph">
+    <div class="tabs">
+      <a href='{{ results_path }}/{{ tab }}/project?page={{ page }}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre={{ order }}'
+        class='button tab {% if aside_hashtag_tab == "project" %} active {% endif %}'>sélectionnés</a>
+      <a href='{{ results_path }}/{{ tab }}/top?page={{ page }}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre={{ order }}'
+        class='tab button {% if aside_hashtag_tab == "top" %} active {% endif %}'>top</a>
+      <a href='{{ results_path }}/{{ tab }}/auteur?page={{ page }}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre={{ order }}'
+        class='tab button {% if aside_hashtag_tab == "auteur" %} active {% endif %}'>auteurs</a>
+      <a href='{{ results_path }}/{{ tab }}/cooccurence?page={{ page }}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre={{ order }}'
+        class='tab button {% if aside_hashtag_tab == "cooccurence" %} active {% endif %}'>cooccurences</a>
+    </div>
+  </div>
+  <div class="aside-result-legend">
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        {% if aside_hashtag_tab == "project" %}
+        {% for frequence in frequences %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <form action="{{results_path}}/{{tab}}/{{ aside_hashtag_tab }}" method="post"
+              id="frequence-{{frequence.hashtag}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="author" value="">
+              <input type="hidden" name="hashtag" value="{{frequence.hashtag}}" />
+              <input type="hidden" name="query_page" value="{{ page }}" />
+              <input type="hidden" name="query_date" value="{% if date != None %}{{ date.unwrap() }}{% endif %}" />
+              <input type="hidden" name="query_hashtag"
+                value="{% match hashtag %}{% when Some with(val) %}{{ val }}{% when None %}{%endmatch%}" />
+              <input type="hidden" name="query_auteur" value="{{ user_screen_name }}" />
+              <input type="hidden" name="query_ordre" value="{{ order }}" />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else if aside_hashtag_tab == "top" %}
+        {% for frequence in frequences_topk %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <form action="{{results_path}}/{{tab}}/{{ aside_hashtag_tab }}" method="post"
+              id="frequence-{{frequence.hashtag}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="author" value="">
+              <input type="hidden" name="hashtag" value="{{frequence.hashtag}}" />
+              <input type="hidden" name="query_page" value="{{ page }}" />
+              <input type="hidden" name="query_date" value="{% if date != None %}{{ date.unwrap() }}{% endif %}" />
+              <input type="hidden" name="query_auteur" value="{{ user_screen_name }}" />
+              <input type="hidden" name="query_hashtag"
+                value="{% match hashtag %}{% when Some with(val) %}{{ val }}{% when None %}{%endmatch%}" />
+              <input type="hidden" name="query_ordre" value="{{ order }}" />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else if aside_hashtag_tab == "auteur" %}
+        {% for author in authors %}
+        <tr>
+          <td>
+            <span x-data class="icon-arobase" :style="{color: uniqolor('{{author.user_screen_name}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{author.user_screen_name}}">{{author.user_name}}</span>
+          </td>
+          <td>
+            <form action='{{results_path}}/{{tab}}/{{ aside_hashtag_tab }}' method="post"
+              id="author-{{author.user_screen_name}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!author.hidden}}" />
+              <input type="hidden" name="hashtag" value="" />
+              <input type="hidden" name="author" value="{{author.user_screen_name}}" />
+              <input type="hidden" name="query_page" value="{{ page }}" />
+              <input type="hidden" name="query_date" value="{% if date != None %}{{ date.unwrap() }}{% endif %}" />
+              <input type="hidden" name="query_hashtag"
+                value="{% match hashtag %}{% when Some with(val) %}{{ val }}{% when None %}{%endmatch%}" />
+              <input type="hidden" name="query_auteur" value="{{ user_screen_name }}" />
+              <input type="hidden" name="query_ordre" value="{{ order }}" />
+              <button class="button--visibility" type="submit">
+                <span class="{% if author.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else if aside_hashtag_tab == "cooccurence" %}
+        {% for frequence in frequences_cooccurence %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.label}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.label}}">{{frequence.label}}</span>
+          </td>
+          <td>
+            <form action="{{results_path}}/{{tab}}/{{ aside_hashtag_tab }}" method="post"
+              id="frequence-{{frequence.label}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="author" value="">
+              <input type="hidden" name="hashtag" value="{{frequence.label}}" />
+              <input type="hidden" name="query_page" value="{{ page }}" />
+              <input type="hidden" name="query_date" value="{% if date != None %}{{ date.unwrap() }}{% endif %}" />
+              <input type="hidden" name="query_auteur" value="{{ user_screen_name }}" />
+              <input type="hidden" name="query_hashtag"
+                value="{% match hashtag %}{% when Some with(val) %}{{ val }}{% when None %}{%endmatch%}" />
+              <input type="hidden" name="query_ordre" value="{{ order }}" />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</aside>

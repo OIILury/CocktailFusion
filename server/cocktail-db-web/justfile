@@ -1,0 +1,18 @@
+default: 
+  just --list
+
+# revert migration : base de données de cette librairie
+revert-local:
+  sqlx migrate revert -D 'sqlite:./db-web.db'
+
+# revert migration: base de données de `cocktail-server`
+revert-server:
+  sqlx migrate revert -D 'sqlite:../cocktail-server/db-web.db'
+
+# run migration : base de données de cette librairie
+run-local:
+  sqlx migrate run -D 'sqlite:./db-web.db'
+
+# run migration: base de données de `cocktail-server`
+run-server:
+  sqlx migrate run -D 'sqlite:../cocktail-server/db-web.db'

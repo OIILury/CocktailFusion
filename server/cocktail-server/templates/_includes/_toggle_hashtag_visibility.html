@@ -1,0 +1,8 @@
+<form action="{{hashtag_toggle_path}}" method="post" id="frequence-{{frequence.hashtag}}" class="visibility-form">
+  <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+  <input type="hidden" name="hashtag" value="{{frequence.hashtag}}" />
+  <button class="button--visibility" type="submit"
+    @click="$dispatch('hashtag-visibility-toggled', {hashtag: '{{frequence.hashtag}}', hidden: {{!frequence.hidden}}})">
+    <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+  </button>
+</form>

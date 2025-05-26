@@ -1,0 +1,214 @@
+<div class="views view--grey">
+
+  <script>
+    function buttonCLick(context) {
+      var menu = context.nextElementSibling;
+      if (menu.style.visibility == "visible") {
+        menu.style.visibility = "hidden";
+      } else {
+        menu.style.visibility = "visible";
+      }
+    }
+  </script>
+
+  <h2 class="title title--grey">Paramétrer votre requête</h2>
+  <div>
+    <div class="request-subtitle">
+      <h2 class="title title--green">Sélection</h2>
+      <div class="request-helper">Chaque bloc applique sa condition (et / ou) au bloc pécédent uniquement</div>
+    </div>
+
+    {% let selection = request_params[0] %}
+    {% let exclusion = request_params[1] %}
+
+    {% for (i, bloc) in selection.iter().enumerate() %}
+    <div class="request-block" id="request-block-{{i}}">
+
+      <div class="request-list-elements">
+
+        {% for (j, element) in bloc.data.iter().enumerate() %}
+        <div class="request-element request-element-include">
+          {% if element.chars().next().unwrap() == '#' %}
+          <span class="icon-hashtag"></span>
+          <span>{{ element[1..] }}</span>
+          {% else %}
+          {% if element.chars().next().unwrap() == '@' %}
+          <!-- <span class="icon-arobase"></span> -->
+          {% else %}
+          <span class="icon-key"></span>
+          {% endif %}
+          <span>{{ element }}</span>
+          {% endif %}
+
+          <form style="display: none;" action="requete" method="post" id="form-request-delete-item-{{ i }}-{{ j }}">
+            <input type="hidden" name="item_delete" value="{{ i }}_{{ j }}" />
+          </form>
+          <button form="form-request-delete-item-{{ i }}-{{ j }}" type="submit" class="button--text" title="">
+            <span class="icon-cross" style="font-size: 0.6rem; margin-left: 0.5rem;"></span>
+          </button>
+        </div>
+
+        {% if j != bloc.data.len() - 1 %}
+        <div class="and">ET</div>
+        {% endif %}
+
+        <!-- Pour revenir à la ligne pour chaque type (hashtags, comptes et mots clés) -->
+        {% if bloc.data.len() >= 2 %}
+        {% if j <= bloc.data.len() - 2 %} {% if (bloc.data[j].starts_with('#') & !bloc.data[j+1].starts_with('#')) |
+          (bloc.data[j].starts_with('@') & !bloc.data[j+1].starts_with('@')) %} <div style="width:100%">
+      </div>
+      {% endif %}
+      {% endif %}
+      {% endif %}
+
+      {% endfor %}
+      <div class="div-add-item-include">
+        <button type="button" class="button--text button-add" onclick="buttonCLick(this)">
+          <span class="icon-plus"></span>
+          Ajouter...
+        </button>
+        {% let type = "selection" %}
+        {% let block_id = i %}
+        {% include "./_includes/_request_add_menu.html" %}
+      </div>
+    </div>
+
+    <div class="delete-block">
+      <form style="display: none;" action="requete" method="post" id="form-request-delete-block-{{ i }}">
+        <input type="hidden" name="block_delete_id" value="{{ i }}" />
+      </form>
+      <button form="form-request-delete-block-{{ i }}" type="submit" class="button--text delete" title="">
+        <span class="icon-poubelle-x"></span>
+      </button>
+    </div>
+
+  </div>
+
+  {% if i == selection.len() - 1 %}
+  {% let last_bloc = selection[i] %}
+  {% if last_bloc.data.len() != 0 %}
+  <div class="switch-and-or" style="margin-bottom: 2em; width:100%">
+    <div style="display:flex; flex-direction: row; justify-content: center; cursor: pointer;">
+      <form style="display: none;" action="requete" method="post" id="form-request-add-bloc-select">
+        <input type="hidden" name="add_block" value="add_block" />
+      </form>
+      <button form="form-request-add-bloc-select" type="submit" class="button-add-bloc" title="Ajouter un bloc">
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider-empty"></span>
+        </label>
+        <div class="div-switch-add"><span>Ajouter un bloc</span></div>
+      </button>
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="switch-and-or">
+    <form style="display: none;" action="requete" method="post" id="form-request-switch-{{ i+1 }}">
+      <input type="hidden" name="switch_selection" value="{{ i+1 }}" />
+    </form>
+
+    <label class="switch">
+      {% if selection[i+1].link == "OU" %}
+      <input type="checkbox" onChange="requestSubmit();" form="form-request-switch-{{ i+1 }}" checked>
+      {% else %}
+      <input type="checkbox" onChange="requestSubmit();" form="form-request-switch-{{ i+1 }}">
+      {% endif %}
+      <span class="slider-AND-OR"></span>
+    </label>
+  </div>
+  {% endif %}
+
+  {% endfor %}
+
+</div>
+</div>
+
+<div class="view-exclude">
+
+  <div class="switch-and-or switch-exclude">
+    <form style="display: none;" action="requete" method="post" id="form-request-switch-exclusion">
+      <input type="hidden" name="switch_exclusion" value="switch_exclusion" />
+    </form>
+
+    <label class="switch">
+      {% if exclusion[0].link == "OU" %}
+      <input type="checkbox" onChange="requestSubmit();" form="form-request-switch-exclusion" checked>
+      {% else %}
+      <input type="checkbox" onChange="requestSubmit();" form="form-request-switch-exclusion">
+      {% endif %}
+      <span class="slider-AND-OR"></span>
+    </label>
+  </div>
+
+  <div class="request-subtitle">
+    <h2 class="title title--red">Exclusion</h2>
+    <div class="request-helper">L'exclusion s'applique à l'ensemble de votre sélection</div>
+  </div>
+
+  <div class="request-block-exclude">
+    <div class="request-list-elements">
+      {% if exclusion.len() != 0 %}
+      {% let bloc = exclusion[0] %}
+      {% for (j, element) in bloc.data.iter().enumerate() %}
+      <div class="request-element request-element-exclude">
+        {% if element.chars().next().unwrap() == '#' %}
+        <span class="icon-hashtag"></span>
+        <span>{{ element[1..] }}</span>
+
+        {% else %}
+        {% if element.chars().next().unwrap() == '@' %}
+        <!-- <span class="icon-arobase"></span> -->
+        {% else %}
+        <span class="icon-key"></span>
+        {% endif %}
+
+        <span>{{ element }}</span>
+        {% endif %}
+
+        <form style="display: none;" action="requete" method="post" id="form-request-delete-item--1-{{ j }}">
+          <input type="hidden" name="item_delete" value="-1_{{ j }}" />
+        </form>
+        <button form="form-request-delete-item--1-{{ j }}" type="submit" class="button--text" title="">
+          <span class="icon-cross" style="font-size: 0.6rem; margin-left: 0.5rem;"></span>
+        </button>
+
+      </div>
+      {% if j != bloc.data.len() - 1 %}
+      <div class="and">ET</div>
+      {% endif %}
+
+      <!-- Pour revenir à la ligne pour chaque type (hashtags, comptes et mots clés) -->
+      {% if bloc.data.len() >= 2 %}
+      {% if j <= bloc.data.len() - 2 %} {% if (bloc.data[j].starts_with('#') & !bloc.data[j+1].starts_with('#')) |
+        (bloc.data[j].starts_with('@') & !bloc.data[j+1].starts_with('@')) %} <div style="width:100%">
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+
+    {% endfor %}
+    {% endif %}
+
+    <div class="div-add-item-exclude">
+      <button type="button" class="button--text button-exclude" onclick="buttonCLick(this)">
+        <span class="icon-plus"></span>
+        Exclure...
+      </button>
+      {% let type = "exclusion" %}
+      {% let block_id = -1 %}
+      {% include "./_includes/_request_add_menu.html" %}
+    </div>
+  </div>
+  {% if exclusion.len() != 0 %}
+  <div class="delete-block">
+    <form style="display: none;" action="requete" method="post" id="form-request-delete-block--1">
+      <input type="hidden" name="block_delete_id" value="-1" />
+    </form>
+    <button form="form-request-delete-block--1" type="submit" class="button--text delete" title="">
+      <span class="icon-poubelle-x"></span>
+    </button>
+  </div>
+  {% endif %}
+</div>
+</div>

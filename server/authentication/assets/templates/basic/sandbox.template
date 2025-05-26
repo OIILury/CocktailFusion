@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <script type="text/javascript" src="{{ pathjoin .ActionEndpoint  "/assets/vendors/jquery-3.6.0.min.js" }}"></script>
+    <script type="text/javascript" src="{{ pathjoin .ActionEndpoint  "/assets/vendors/slick/slick.min.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/main.js" }}"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://d1azc1qln24ryf.cloudfront.net/183092/Cocktail/style-cf.css?6tft3v"
+    />
+    <link rel="stylesheet" type="text/css" href="{{ pathjoin .ActionEndpoint  "/assets/vendors/slick/slick.css" }}" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ pathjoin .ActionEndpoint "/assets/vendors/slick/slick-theme.css" }}"
+    />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/main.css"
+    }}" />
+
+      <style>
+    .hidden {
+      display: none;
+    }
+  </style>
+
+    <title>Connexion à Cocktail</title>
+  </head>
+
+  <body>
+    <header class="header-connection">
+      <img src="{{ .LogoURL }}" alt="Cocktail" />
+    </header>
+
+    <main class="main-site">
+      <div class="main-site__edging"></div>
+
+      <div class="connection-container">
+        <div class="connection-container__left">
+          <h1 class="connection-container__title">
+            L'Observatoire en temps réel des tendances, des singularités et des
+            signaux faibles circulant dans les discours du domaine alimentaire
+            sur Twitter
+          </h1>
+
+          <ul class="tags">
+            <li class="tag">big data</li>
+            <li class="tag">IA</li>
+            <li class="tag">temps réel</li>
+            <li class="tag">traitement de masse</li>
+          </ul>
+
+          <ul class="goals">
+            <li class="goal">Identifier les leaders d'opinion</li>
+            <li class="goal">Désamorcer les crises</li>
+            <li class="goal">Analyser des spécificités territoriales</li>
+            <li class="goal">Choisir des canaux de diffusion</li>
+            <li class="goal">
+              Suivre l’impact d’une communication, d’un événement
+            </li>
+            <li class="goal">Adapter son offre industrielle</li>
+            <li class="goal">
+              Enrichir une réflexion pour construire des messages
+            </li>
+          </ul>
+        </div>
+
+        <div class="connection-container__right">
+          <form 
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "password-auth" }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+            <h2 class="connection-form__title">Accéder à mon espace</h2>
+            <div class="connection-field">
+              <label>
+                <span>Mot de passe</span>
+                <input id="secret" name="secret" type="password" class="app-inp-txt"
+                         autocorrect="off" autocapitalize="off" spellcheck="false" autofocus required />
+              </label>
+              <div class="hidden">
+                <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
+              </div>
+            </div>
+
+
+            <button type="submit" class="button">Suivant</button>
+          </form>
+
+          <div id="user_register_link" {{ if eq .Data.login_options.hide_register_link "yes" }}class="hidden"{{ else }}class="noAcount"{{ end -}}>
+            <h3>Vous n'avez pas encore de compte ?</h3>
+            <a class="button" href="{{ pathjoin .ActionEndpoint "/register" .Data.login_options.default_realm }}">
+              Inscrivez-vous !
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <footer class="connection-footer">
+        <div class="logo-uB">
+          <img src="{{ pathjoin .ActionEndpoint "/assets/img/logo-uB.png" }}" alt="Université de Bourgogne" />
+        </div>
+
+        <div class="slick-container">
+          <div class="slick slick-connection">
+            <div>
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Atol.png" }}" alt="AtolCD" />
+            </div>
+            <dv>
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/BpiFrance.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Cimeos.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/CSGA.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+              <img
+                src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/DijonMetropole.png" }}"
+                alt="AtolCD"
+              />
+            </div>
+            <div>
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Elliadd.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+              <img
+              src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/InvestirAvenir.png" }}"
+                alt="AtolCD"
+              />
+            </div>
+          <div><img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Lib.png" }}" alt="AtolCD" /></div>
+            <div>
+            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/MSHD.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/RegionUE.png" }}" alt="AtolCD" />
+            </div>
+          <div><img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/TIL.png" }}" alt="AtolCD" /></div>
+            <div>
+            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/UBFC.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Vitagora.png" }}" alt="AtolCD" />
+            </div>
+            <div>
+            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/WebDrone.png" }}" alt="AtolCD" />
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script type="module">
+    import * as Turbo from "https://cdn.skypack.dev/pin/@hotwired/turbo@v7.1.0-RBjb2wnkmosSQVoP27jT/min/@hotwired/turbo.js";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/alpine-turbo-drive-adapter@2.0.x/dist/alpine-turbo-drive-adapter.min.js"
+    defer></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://platform.twitter.com/widgets.js"></script>
+  <script type="text/javascript" src="/static/vendors/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="/static/vendors/slick/slick.js"></script>
+  <script src="/static/js/main.js"></script>
+  <script src="/static/chart/js/main-premium.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"
+    integrity="sha256-ErZ09KkZnzjpqcane4SCyyHsKAXMvID9/xwbl/Aq1pc=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+  <script src="https://unpkg.com/uniqolor/dist/uniqolor.min.js" type="text/javascript"></script>
+
+  <link rel="stylesheet" href="https://d1azc1qln24ryf.cloudfront.net/183092/Cocktail/style-cf.css?6tft3v">
+  <link rel="stylesheet" type="text/css" href="/static/vendors/slick/slick.css" />
+  <link rel="stylesheet" type="text/css" href="/static/vendors/slick/slick-theme.css" />
+  <link rel="stylesheet" href="/static/css/main.css">
+
+  {% block extra_head %}{% endblock %}
+  <style>
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
+
+  <title>{% block title %}{% endblock %}</title>
+</head>
+
+<body class="">
+  <header class="header-site">
+    <div class="header__left">
+      <div class="logo-site">
+        <a href="/projets"><img src="/static/img/logo-mini.png" alt="Cocktail"></a>
+      </div>
+      <div>Bienvenue sur Cocktail</div>
+    </div>
+
+    {% include "_header_right.html" %}
+
+    <div class="header__bot">
+      <div class="header__bot__left">
+        <div class="ariane">
+          <div class="ariane__home">
+            <a href="/"><span class="icon-home"></span></a>
+          </div>
+        </div>
+
+        <h1 class="header__bot__title">
+          <span id="title">{{ title }}</span>
+          <turbo-frame>
+            <a href="{{ rename_popup_path }}"><span class="action-rename icon-edit-plain"></span></a>
+          </turbo-frame>
+        </h1>
+      </div>
+
+      <div class="header__bot__right">
+        {% if tweets_count < 5000 %}<a href="{{ download_path }}" class="button--border">
+          <span class="icon-download"></span>
+          <span>Exporter l'étude</span>
+          </a>
+          {% else %}
+          <a href="#" class="button--border disabled" title="Trop de résultats pour l'export, maximum 5000 tweets">
+            <span class="icon-download"></span>
+            <span>Exporter l'étude</span>
+          </a>
+          {% endif %}
+          <a href="{{ duplicate_popup_path }}" class="button--border">
+            <span class="icon-dupliquer"></span>
+            <span>Dupliquer l'étude</span>
+          </a>
+          <a href="{{ delete_popup_path }}" class="button--border">
+            <span class="icon-poubelle-x"></span>
+            <span>Supprimer l'étude</span>
+          </a>
+      </div>
+    </div>
+  </header>
+
+{% block content %}{% endblock %}

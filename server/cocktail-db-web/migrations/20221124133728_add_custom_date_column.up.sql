@@ -1,0 +1,1 @@
+ALTER TABLE project ADD COLUMN is_custom_date INTEGER NOT NULL DEFAULT(0) ;

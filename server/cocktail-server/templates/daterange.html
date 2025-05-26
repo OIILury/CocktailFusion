@@ -1,0 +1,55 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Étude - Période{% endblock %}
+
+{% block content %}
+{% let active_page = "daterange" %}
+
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+
+        {% include "_panel_criteria.html" %}
+
+        {% if is_analyzed %}
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+        {% endif %}
+
+      </aside>
+
+      <div class="views">
+        <div class="view-col">
+          <h2 class="title title--grey">Nouvelle période d'analyse</h2>
+          {% include "_includes/_daterange_form.html" %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

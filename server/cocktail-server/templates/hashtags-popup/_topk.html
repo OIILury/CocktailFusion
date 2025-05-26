@@ -1,0 +1,32 @@
+<turbo-frame id="popup-main">
+  <main class="popup-main">
+    <table class="table-hashtags-list">
+      <thead>
+        <tr>
+          <th>Hashtag</th>
+          <th>Fréquence <span class="icon-questioning"></span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="hashtag-search-result">
+        {% for hashtag in hashtags %}
+        <tr>
+          <td>{{ hashtag.name }}</td>
+          <td>{{ hashtag.count }}</td>
+          <td>
+            <!-- <button class="button--text"><span class="icon-poubelle-x"></span> Retirer de ma sélection</button> -->
+            <!-- <button class="button--text"><span class="icon-plus"></span>Ajouter à ma sélection</button> -->
+
+            {% if exclude_popup_style %}
+            {% include "_includes/_exclude_hashtag_toggle_form.html" %}
+            {% else %}
+            {% include "_includes/_hashtag_toggle_form.html" %}
+            {% endif %}
+
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
+</turbo-frame>

@@ -1,0 +1,17 @@
+<tr class="selected" id="basket-{{ hashtag.name }}">
+  <td>{{ hashtag.name }}</td>
+  <td>{{ hashtag.count }}</td>
+  <td>
+    <form style="display: none;" action="{{include_basket_path}}" method="post"
+      id="toggle-include-{{hashtag.name}}-form">
+      <input type="hidden" name="item_id" value="{{hashtag.name}}" />
+      <input type="hidden" name="kind" value="{{ kind }}" />
+      <input type="hidden" name="count" value="{{hashtag.count}}" />
+      <input type="hidden" name="available" value="false" />
+    </form>
+    <button form="toggle-include-{{hashtag.name}}-form" type="submit" class="button--text"
+      title="Retirer de ma sélection">
+      <span class="icon-poubelle-x">Retirer de ma sélection</span>
+    </button>
+  </td>
+</tr>

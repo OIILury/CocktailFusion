@@ -1,0 +1,20 @@
+[package]
+name = "fts"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# anyhow = "1.0.56"
+chrono = { workspace = true }
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1"
+# tantivy = { git = "https://github.com/quickwit-oss/tantivy", rev = "f29acf5d8c8f5d49b39a4de676e01d1027b7e457" }
+tantivy = { version = "0.18.0" }
+tap = "1.0.1"
+thiserror = "1"
+# todo-or-die = { version = "0.1.2", features = ["time"] }
+tracing = "0.1"
+cocktail-twitter-data = { path = "../cocktail-twitter-data" }
+sqlx = { workspace = true, features = ["sqlite", "uuid", "json", "offline", "chrono"] }

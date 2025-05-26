@@ -1,0 +1,6 @@
+target
+/data-tweet
+data.db*
+topk.db*
+tantivy-data
+project-data

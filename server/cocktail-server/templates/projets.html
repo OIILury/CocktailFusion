@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script type="text/javascript" src="/static/vendors/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="/static/vendors/slick/slick.js"></script>
+  <script src="/static/js/main.js"></script>
+
+  <link rel="stylesheet" href="https://d1azc1qln24ryf.cloudfront.net/183092/Cocktail/style-cf.css?6tft3v" />
+  <link rel="stylesheet" type="text/css" href="/static/vendors/slick/slick.css" />
+  <link rel="stylesheet" type="text/css" href="/static/vendors/slick/slick-theme.css" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+
+  <title>Accueil</title>
+</head>
+
+<body class="page-start">
+  <header class="header-site">
+    <div class="header__left">
+      <div class="logo-site">
+        <a href="/"><img src="/static/img/logo-mini.png" alt="Cocktail"></a>
+      </div>
+      <div>Bienvenue sur Cocktail</div>
+    </div>
+
+    {% include "_header_right.html" %}
+  </header>
+
+  <main class="main-site">
+    <section class="section-start">
+      <h1 class="main-title">Études</h1>
+      <div class="newProject">
+        <div class="studieCard-new">
+          <a href="/projets/nouveau">
+            <span class="icon-plus"></span>
+            <span class="studieCard-new__text">Créer une étude</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="lasts-projects">
+        {% for project in projects %}
+        <div class="project-card">
+          <div class="project-card-header">
+            <a href="{{ project|daterange_path }}">
+              <h3 class="project-card__title">{{ project.title }}</h3>
+            </a>
+            {% match project.updated_at|date %} {% when Some with (d) %}
+            <div class="project-card__edited">modifié le {{ d }}</div>
+            {% when None %} {% endmatch %}
+          </div>
+          <div class="project-card__hastags">
+            <span class="icon-hashtag"></span>
+            <span>{{ project.tweets_count }}</span>
+          </div>
+          <div class="project-card__calendar">
+            <span class="icon-calendar"></span>
+            {% if project.is_custom_date == 0 %}
+            <span>Les 6 derniers mois</span>
+            {% endif %} {% if project.is_custom_date == 1 %}
+            <span>Du {{ project.start_date.format("%d/%m/%Y") }} au {{
+              project.end_date.format("%d/%m/%Y") }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="howThatWorks">
+      <div class="howThatWorks__frise">
+        <img src="/static/img/frise.svg" alt="frise" />
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>

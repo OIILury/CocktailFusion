@@ -1,0 +1,188 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Résultats - Tweets{% endblock %}
+
+{% block content %}
+{% let active_page = "results" %}
+
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        
+        {% include "_panel_criteria.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+      </aside>
+
+      <div class="tweets-list">
+        <div class="list-tweet">
+          <div>
+            <div class="view-col">
+              <div class="page-title tweetsRestit-top">
+                <h2 class="title title--grey">Restitution
+                  {% match hashtag %}{% when Some with(val) %}du hashtag #{{ val }}{% when None %}de tous les
+                  tweets{%endmatch%}
+                  {% match date %}
+                  {% when Some with (val) %}
+                  {% match val|date %}
+                  {% when Some with (d) %}
+                  pour la date {{ d }}
+                  {% when None %}
+                  de la période étudiée
+                  {% endmatch %}
+                  {% when None %}
+                  de la période étudiée
+                  {% endmatch %}
+                  :</h2>
+              </div>
+              <div class="view-row">
+                <div class="tabs">
+                  <a class='button tab {% if tab == "total" %} active {% endif %}'
+                    href='{{ results_path }}/total/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}'>Tous</a>
+                  <a class='button tab {% if tab == "retweets" %} active {% endif %}'
+                    href='{{ results_path }}/retweets/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}'>Les
+                    plus retweetés</a>
+                  <a class='button tab {% if tab == "citations" %} active {% endif %}'
+                    href='{{ results_path }}/citations/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}'>Les
+                    plus cités</a>
+                  <a class='button tab {% if tab == "reponses" %} active {% endif %}'
+                    href='{{ results_path }}/reponses/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}'>Les
+                    plus répondus</a>
+                  {% if niveau == 2 %}
+                  <a class='button tab {% if tab == "engageants" %} active {% endif %}'
+                    href='{{ results_path }}/engageants/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}'>Les
+                    plus engageants</a>
+                  {% else %}
+                  <a class='button tab disabled lock' href='#'>
+                    Les plus engageants<span class="icon-lock"></span>
+                  </a>
+                  {% endif %}
+                </div>
+                {% if user_screen_name != "" %}
+                <div class="frequency-filter frequency-filter--user">
+                  <label>
+                    <span class="result">pour l'utilisateur @{{ user_screen_name }}</span>
+                  </label>
+                </div>
+                <a href="{{ results_path }}/total/{{ aside_hashtag_tab }}">retour à la liste</a>
+                {% endif %}
+
+                <div class="frequency-filter">
+                  <label>
+                    <span>Trier par :</span>
+                    <select name="orderBy" id="order_by"
+                      onChange="window.location.replace(document.getElementById('order_by').value);">
+                      >
+                      <option {% if order=="decroissant" %}selected{% endif %}
+                        value='{{ results_path }}/{{ tab }}/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre=decroissant'>
+                        Le plus
+                        {% if tab == "total" %}
+                        récent
+                        {% else if tab == "retweets" %}
+                        retweetés
+                        {% else if tab == "citations" %}
+                        cités
+                        {% else if tab == "reponses" %}
+                        répondus
+                        {% else if tab == "engageants" %}
+                        engageants
+                        {% endif %}
+                        d'abord
+                      </option>
+                      <option {% if order=="croissant" %}selected{% endif %}
+                        value='{{ results_path }}/{{ tab }}/{{ aside_hashtag_tab }}?page=1{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre=croissant'>
+                        {% if tab == "total" %}
+                        Les plus ancien
+                        {% else if tab == "retweets" %}
+                        Les moins retweetés
+                        {% else if tab == "citations" %}
+                        Les moins cités
+                        {% else if tab == "reponses" %}
+                        Les moins répondus
+                        {% else if tab == "engageants" %}
+                        Les moins engageants
+                        {% endif %}
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <turbo-frame id="tweets-list">
+                <div class="tweets analyse">
+                  {% for tweet in tweets %}
+                  <span class="tweet-info" data-tweeet-id="{{ tweet.id }}">
+                    <div class="retweet-container" style="display: none;">
+                      <div>
+                        {{ tweet.retweet_count }} retweet{% if tweet.retweet_count > 1 %}s{% endif %}
+                      </div>
+                      <div>
+                        {% if tweet.text.starts_with("RT @") %}
+                        RT de
+                        <a class="auteur-link"
+                          onclick="window.location.replace('{{ results_path }}/{{ tab }}/project?page={{ page }}&auteur={{ tweet.user_screen_name }}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% match hashtag %}{% when Some with(val) %}&hashtag={{ val }}{% when None %}{% endmatch %}&ordre={{ order }}')"
+                          href='#'>
+                          @{{ tweet.user_name }}
+                        </a>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="tweet-erreur" style="display: none;">
+                      Impossible d'afficher le tweet
+                    </div>
+                  </span>
+                  {% else %}
+                  <div class="views">Aucun résultat</div>
+                  {% endfor %}
+                </div>
+
+                <div class="pagination">
+                  {% if page > 1 %}
+                  <a href='{{ results_path }}/{{tab}}/{{ aside_hashtag_tab }}?page={{page - 1}}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% if order != "" %}&ordre={{ order }}{% endif %}'
+                    rel="previous" data-turbo-action="restore">Page
+                    précédente</a>
+                  {% endif %}
+                  {{ page }}
+                  {% if tweets.len() == 10 %}
+                  <a href='{{ results_path }}/{{tab}}/{{ aside_hashtag_tab }}?page={{page + 1}}{% if user_screen_name != "" %}&auteur={{ user_screen_name }}{% endif %}{% if date != None %}&date={{ date.unwrap() }}{% endif %}{% if order != "" %}&ordre={{ order }}{% endif %}'
+                    rel="next" data-turbo-action="advance">Page
+                    suivante</a>
+                  {% endif %}
+                </div>
+              </turbo-frame>
+            </div>
+          </div>
+          <div>
+            {% include "_includes/_aside_results.html" %}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

@@ -1,0 +1,6 @@
+<footer class="footer-site">
+	{% if last_login_datetime|datetime != "" %}
+	<div class="last-connection">Dernière connexion le : {{ last_login_datetime|datetime }}</div>
+	{% endif %}
+	<div class="copyrights">© {{ ""|current_year }} - COCKTAIL</div>
+</footer>

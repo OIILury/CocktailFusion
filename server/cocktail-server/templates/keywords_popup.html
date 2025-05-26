@@ -1,0 +1,59 @@
+<turbo-stream action="after" target="main-site">
+  <template>
+    {% let color %}
+    {% let title %}
+    {% let subtitle %}
+    {% if block_id == -1 %}
+    {% let color = "red" %}
+    {% let title = "Exclure ces mots clés du corpus" %}
+    {% let subtitle = "Je veux exclure les mots clés :" %}
+    {% else %}
+    {% let color = "green" %}
+    {% let title = "Inclure ces mots clés au corpus" %}
+    {% let subtitle = "Je choisis les mots clés :" %}
+    {% endif %}
+    <div class="mask" id="mask">
+      <div class="popup popup-keywords-accounts">
+        <header class="popup-header popup-header-keywords-accounts">
+          <h1 class="popup-title popup-title--{{color}}">{{title}}</h1>
+          <button type="button" class="popup-header__close" @click="document.getElementById('mask').remove();">
+            <!-- TODO : si on veut que les mots clés soient ajoutés quand on clique sur la croix en haut, on peut mettre :
+            document.getElementById('keywords').requestSubmit();document.getElementById('mask').remove();
+            -->
+            <span class="icon-cross"></span>
+          </button>
+        </header>
+
+        <form action="{{ request_path }}" method="post" class="form-keywords popup-form-keywords-accounts" style="display: flex; flex-direction: column"
+          id="keywords">
+          <input type="hidden" name="block_id" id="exact_keywords" value="{{ block_id }}">
+          <div class="view-col keywords-fields">
+            <h2 class="title title--grey">{{subtitle}}</h2>
+            <div class="view-col">
+              <label class="placeholderStay">
+                <input type="text" name="exact_keywords" id="exact_keywords"
+                  value="">
+                <span>Tous ces mots</span>
+              </label>
+              <span class="helper">Exemple : pomme de pin · contient à la fois "pomme", "de" et "pin"</span>
+            </div>
+            <div class="view-col">
+              <label class="placeholderStay">
+                <input type="text" name="exact_group_keywords" id="exact_group_keywords"
+                  value="">
+                <span>Ce groupe de mots exact</span>
+              </label>
+              <span class="helper">Exemple : pomme verte · contient le groupe de mots exact "pomme verte"</span>
+            </div>
+          </div>
+        </form>
+        <footer class="popup-footer popup-footer--{{color}} popup-footer-keywords-accounts">
+          <button type="submit" form="keywords" class="button--{{color}} popup-button-keywords-accounts"
+            @click="document.getElementById('keywords').requestSubmit();
+            document.getElementById('mask').remove();">J'ai terminé</a>
+          </footer>
+      </div>
+    </div>
+  </template>
+</turbo-stream>
+

@@ -1,0 +1,639 @@
+{
+  "db": "SQLite",
+  "0377c75ef9a94b64aa1a11490026c62b04bcf9be07ec36505d1aecb92e325618": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n    DELETE FROM project\n    WHERE project_id = ?\n    AND user_id = ?\n    "
+  },
+  "056fd3c5127fb3407e65e35573d7c7ddb282c061d323d9ebb794a42b741700ef": {
+    "describe": {
+      "columns": [
+        {
+          "name": "total",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT COALESCE(json_array_length(hashtag_list), 0) as total\n        FROM project\n        WHERE project_id = ?1 AND user_id = ?2\n       "
+  },
+  "0dfc08bffaef17129940f003b07b75b00edaa986123128971e3d4c69365327cf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "list: Json<_>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "SELECT hidden_hashtag_tweets_list AS \"list: Json<_>\" FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "22758bc7f4de4c58a00a7b5b041f52b0ba11a4897b2bbb0f92c21e5887c74925": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET hidden_hashtag_tweets_graph_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"
+  },
+  "256bf513dfd7e0809120a36ccbf3d357eba53430514bf6d64761f781d95fb7ad": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 8
+      }
+    },
+    "query": "\nINSERT INTO project (project_id, user_id, title, event_count, tweet_count, updated_at, start_date, end_date)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n    "
+  },
+  "3141dafeca23d548ad761b940fdddf344598c8d1cef8261e4ffc7d66521ca201": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET hidden_author_tweets_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"
+  },
+  "34dedc75f0ab5c371a1a575b9f8310bbd9c575fe27c6a4c6c95aae81927c100e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n    DELETE FROM chart\n    WHERE project_id = ?\n    "
+  },
+  "34ed85d871acd29191cbdcbfa757fa19e61376cc0a167a6b80f5ef4c892355b0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET hidden_hashtag_tweets_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"
+  },
+  "356718b45838079ab74ac8ab77387e8b1012620fadc75e22cfccc2e7c7b75b4b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET is_analyzed = 1,\n      tweets_count = ?1,\n      authors_count = ?2,\n      hidden_hashtag_list = '[]',\n      hidden_hashtag_tweets_list = '[]',\n      hidden_author_tweets_list = '[]',\n      hidden_hashtag_tweets_graph_list = '[]' \n    WHERE project_id = ?3  AND user_id = ?4"
+  },
+  "372099d485b9e574f8861defd0fd705f04392b8f3290e018762a5af8242e429e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT exclude_hashtag_list AS \"exclude_hashtag_list: Json<HashSet<HashtagWithCount>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "4a6e2c8672c315bc9fde136d5c0304af8b3ca79de50746fe739d4fd112e24999": {
+    "describe": {
+      "columns": [
+        {
+          "name": "project_id: Hyphenated",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "event_count",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "tweets_count",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "authors_count",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "updated_at: NaiveDate",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "start_date: NaiveDate",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "end_date: NaiveDate",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_custom_date",
+          "ordinal": 9,
+          "type_info": "Int64"
+        },
+        {
+          "name": "hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "request_params: Json<Vec<Vec<Bloc>>>",
+          "ordinal": 12,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_analyzed",
+          "ordinal": 13,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n        SELECT project_id AS \"project_id: Hyphenated\",\n            user_id,title, event_count, tweets_count, authors_count,\n            updated_at AS \"updated_at: NaiveDate\",\n            start_date AS \"start_date: NaiveDate\",\n            end_date AS \"end_date: NaiveDate\",\n            is_custom_date,\n            hashtag_list AS \"hashtag_list: Json<HashSet<HashtagWithCount>>\",\n            exclude_hashtag_list AS \"exclude_hashtag_list: Json<HashSet<HashtagWithCount>>\",\n            request_params AS \"request_params: Json<Vec<Vec<Bloc>>>\",\n            is_analyzed\n        FROM project\n        WHERE user_id = ?1\n        "
+  },
+  "4f406dcf1ee781949a37bf5ce350d0277a65bfcff49ac8c14fdb6e2978e32380": {
+    "describe": {
+      "columns": [
+        {
+          "name": "include_count",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "exclude_count",
+          "ordinal": 1,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT COALESCE(json_array_length(hashtag_list), 0) as include_count, COALESCE(json_array_length(exclude_hashtag_list), 0) as exclude_count\n        FROM project\n        WHERE project_id = ?1 AND user_id = ?2\n       "
+  },
+  "54d4281a31537ae64bca5085b4158fc2f5b37cf5ee8dfcfdfe90ff90e87220a5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "list: Json<_>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "SELECT hidden_hashtag_list AS \"list: Json<_>\" FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "571e64e7a9738f06116e9d2d2a20ce0aa4fb8c4b9985faf3517ba707c5aa907a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "project_id: Hyphenated",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "event_count",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "tweets_count",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "authors_count",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "updated_at: NaiveDate",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "start_date: NaiveDate",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "end_date: NaiveDate",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_custom_date",
+          "ordinal": 9,
+          "type_info": "Int64"
+        },
+        {
+          "name": "hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "request_params: Json<Vec<Vec<Bloc>>>",
+          "ordinal": 12,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_analyzed",
+          "ordinal": 13,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT project_id AS \"project_id: Hyphenated\",\n            user_id,title, event_count, tweets_count, authors_count,\n            updated_at AS \"updated_at: NaiveDate\",\n            start_date AS \"start_date: NaiveDate\",\n            end_date AS \"end_date: NaiveDate\",\n            is_custom_date,\n            hashtag_list AS \"hashtag_list: Json<HashSet<HashtagWithCount>>\",\n            exclude_hashtag_list AS \"exclude_hashtag_list: Json<HashSet<HashtagWithCount>>\",\n            request_params AS \"request_params: Json<Vec<Vec<Bloc>>>\",\n            is_analyzed\n        FROM project\n        WHERE project_id = ?1 AND user_id = ?2"
+  },
+  "5e3e50b84c23d5627748d927bbad7c0c20a00959b0a7ba22ec2955dd0f50a3a7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "\n        UPDATE project SET request_params = ?1,\n            updated_at = ?2\n        WHERE project_id = ?3 AND user_id = ?4"
+  },
+  "638f4308b0f755d7ae4f35481efc5412438a4ae0a3a5259e447d939b40bbbf9e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET hidden_hashtag_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"
+  },
+  "795461b36f47226cd68403fadab05aa2c521ffba7a13fc9b2a64e80d3f39c92d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "\nINSERT OR REPLACE INTO chart (project_id, title, tab, json, date)\nVALUES ($1, $2, $3, $4, $5)\n    "
+  },
+  "7b00bd6e47c11368943ed7c8d920d96b9f0c7c026bb33d3f3729a848da3f5837": {
+    "describe": {
+      "columns": [
+        {
+          "name": "project_id: Hyphenated",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n      SELECT project_id AS \"project_id: Hyphenated\"\n      FROM project\n      WHERE updated_at < $1\n        AND user_id NOT LIKE '%_@__%.__%'\n    "
+  },
+  "7cb4c6b1b9aa502f8f40b8c5859038487fc9a8392658ae6049686b69ba7ae7d7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "complete_hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT hashtag_list AS \"hashtag_list: Json<HashSet<HashtagWithCount>>\",\n               complete_hashtag_list AS \"complete_hashtag_list: Json<HashSet<HashtagWithCount>>\",\n               exclude_hashtag_list AS \"exclude_hashtag_list: Json<HashSet<HashtagWithCount>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "965a49e8dc81716ae6058e20c77cb70f2ec7c3a829b0606eb1f7ff22e773255b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "total",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT COALESCE(json_array_length(exclude_hashtag_list), 0) as total\n        FROM project\n        WHERE project_id = ?1  AND user_id = ?\n       "
+  },
+  "9a90f84ee8d47ba6a9ed66e0ee5a849b7633f9358cfccdd2cd818ffb536b6ddb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "json",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "\nSELECT json FROM chart WHERE project_id = $1 AND title = $2 AND tab = $3\n"
+  },
+  "ac1b85d970900996b07b55c46557cb23a742f2967b7d96f4ef39ec4bde8b00cb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hashtag_list: Json<HashSet<HashtagWithCount>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT hashtag_list AS \"hashtag_list: Json<HashSet<HashtagWithCount>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "b621558705b6c62538d32a73b482a305429817ec98124528d792d4aaa2d82621": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hidden_hashtag_tweets_graph_list: Json<HashSet<String>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT hidden_hashtag_tweets_graph_list AS \"hidden_hashtag_tweets_graph_list: Json<HashSet<String>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "cd6a14b55b4bf342f2afd1b37fe484a1611f410fd66c48f8ba5424b5cd74f448": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "UPDATE project SET hashtag_list = ?1, complete_hashtag_list = ?2, exclude_hashtag_list = ?3 WHERE project_id = ?4 AND user_id = ?5"
+  },
+  "cf56acba23ba585b73afe7b721a56a6629cfa8f0b98960ff14b8ab1cf3fa89b6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hidden_hashtag_list: Json<HashSet<String>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT hidden_hashtag_list AS \"hidden_hashtag_list: Json<HashSet<String>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "d7197d2bd51751d0f706f600f9fcd07517c7ff4aa0a5c6c9da57546434f3215c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hidden_hashtag_tweets_list: Json<HashSet<String>>",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "hidden_author_tweets_list: Json<HashSet<String>>",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n        SELECT hidden_hashtag_tweets_list AS \"hidden_hashtag_tweets_list: Json<HashSet<String>>\",\n          hidden_author_tweets_list AS \"hidden_author_tweets_list: Json<HashSet<String>>\"\n        FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "da58b9f7e697ae39cad51e5c44f27f38e188f6640f427c1f23530f37a79c3d76": {
+    "describe": {
+      "columns": [
+        {
+          "name": "list: Json<_>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "SELECT hidden_hashtag_tweets_graph_list AS \"list: Json<_>\" FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  },
+  "dc2af9f6c1f42f0a0f11dccafe33f0ef629d1ed762c2702bcc153c5892b09d9c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE project SET title = ?1, updated_at = ?2 WHERE project_id = ?3 AND user_id = ?4"
+  },
+  "df55e9cfdc505acfbfb9159bae25d24b08546ab1ccb1f61a774e8214c13ca7e5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "UPDATE project SET start_date = ?1, end_date = ?2, is_custom_date = ?3, updated_at = ?4 WHERE project_id = ?5 AND user_id = ?6"
+  },
+  "e026f5426295d3f407d3eaf5d9aa69b0666496215ac80fa844e93854c801181f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "\n      INSERT INTO project(project_id, title, user_id, event_count, tweet_count, start_date, \n        end_date, is_custom_date, hashtag_list, exclude_hashtag_list) \n      SELECT ?1, ?2, ?4, event_count, tweet_count, start_date, end_date, \n        is_custom_date, hashtag_list, exclude_hashtag_list\n      FROM project\n      WHERE project_id = ?3 AND user_id = ?4"
+  },
+  "f404a28e11f56b2ed140d4b3bd334eee562cd7ac94d11ff4b4ca065aa48f6a8f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n    DELETE FROM project\n    WHERE project_id = ?\n    "
+  },
+  "fe4b5df457bf7d124d65f28d83a4741c28b906a20c38cbb83a6bc70c80ff74fa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "list: Json<_>",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "SELECT hidden_author_tweets_list AS \"list: Json<_>\" FROM \"project\" WHERE project_id = ? AND user_id = ?"
+  }
+}

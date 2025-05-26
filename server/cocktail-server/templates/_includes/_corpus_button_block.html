@@ -1,0 +1,12 @@
+<div class="newProject-hashtag" id="corpus-{{corpus.corpus_id}}">
+  <a href="#" class="newProject-hashtag__left">
+    <div class="newProject-hashtag__number">{{corpus.count}}</div>
+    <div class="newProject-hashtag__text">{{corpus.corpus}}</div>
+    <div class="newProject-hashtag__see">
+      <span class="icon-search"></span>
+    </div>
+  </a>
+  <div class="newProject-hashtag__right">
+    {% include "../_includes/_corpus_toggle_form.html" %}
+  </div>
+</div>

@@ -1,0 +1,80 @@
+#!/usr/bin/env groovy
+
+library 'atolcd-jenkins'
+
+def cocktail() {
+    def cocktail_url = "https://www.thecocktaildb.com/api/json/v1/1/random.php"
+    def curl_output = sh returnStdout: true, script: "curl -s ${cocktail_url}"
+    def cocktails = readJSON text: curl_output
+    def message_build =  cocktails.drinks[0].strDrink
+    def message_archive = cocktails.drinks[0].strInstructions
+    [build: message_build, archive: message_archive]
+}
+
+pipeline {
+  agent {
+    label 'docker'
+  }
+  environment {
+    NEXUS_REPO = 'https://nexus3-ovh.priv.atolcd.com/repository/uneal/datahub_core'
+  }
+  stages {
+    stage('commande du cocktail') {
+      steps {
+        script {
+          def ms = cocktail()
+          env.BuildCocktailMessage = ms.build
+          env.ArchiveCocktailMessage = ms.archive
+        }
+        // zulipSend stream: 'Cocktail', topic: 'builds', message: 'A dry martini. One. In a deep champagne goblet.'
+        zulipSend stream: 'Cocktail', topic: 'builds', message: ":cocktail: ${env.BuildCocktailMessage}"
+      }
+    }
+    stage('build css') {
+      steps {
+        nodejsInsideDocker(imageVersion: '16') {
+          dir(path: 'server/cocktail-server') {
+            sh """
+            npm ci
+            node ./node_modules/.bin/gulp sass
+              """
+          }
+        }
+      }
+    }
+    stage('build web app') {
+      steps {
+        insideDocker(imageName: 'rust', imageVersion: '1.60.0-slim-bullseye') {
+          dir(path: 'server') {
+            sh 'cargo install cargo-deb'
+            sh 'SQLX_OFFLINE=true cargo deb -p cli'
+          }
+        }
+      }
+    }
+    stage('archive') {
+        steps {
+            // zulipSend stream: 'Cocktail', topic: 'builds', message: "Three measures of Gordon's, one of vodka, half a measure of Kina Lillet. Shake it very well until it's ice-cold, then add a large thin slice of lemon peel."
+            zulipSend stream: 'Cocktail', topic: 'builds', message: env.ArchiveCocktailMessage
+            archiveArtifacts artifacts: 'server/target/debian/*.deb', onlyIfSuccessful: true
+            zulipNotification stream: 'Cocktail', topic: 'builds'
+            zulipSend stream: 'Cocktail', topic: 'builds', message: "🍸"
+        }
+    }
+    // stage('nexus3') {
+    //     steps {
+    //         withCredentials([usernameColonPassword(credentialsId: 'nexus3-jenkins', variable: 'NEXUS3_AUTH')]) {
+    //             sh 'curl -v --user "$NEXUS3_AUTH" --upload-file ./data_hub-${BUILD_NUMBER}.tar.gz $NEXUS_REPO/data_hub-${BUILD_NUMBER}.tar.gz'
+    //         }
+    //         sh 'rm -rf ./data_hub_releases/'
+    //         zulipNotification stream: 'datacore-uneal', topic: 'builds-datahub'
+    //     }
+    // }
+  }
+  post {
+      always {
+          deleteDir()
+      }
+  }
+}
+

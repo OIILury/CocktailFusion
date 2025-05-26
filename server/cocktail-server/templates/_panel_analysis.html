@@ -1,0 +1,9 @@
+<div class="panel" {% if active_page!="daterange" && active_page!="hashtags" && active_page!="request" %}
+  style="display: block;" {% endif %}>
+  <a href="{{ results_path }}" class='aside__item {% if active_page == "results" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-twitter-outline"></span>
+      <span class="aside__item__text">Tweets ({{ tweets_count|num_format }})</span>
+    </div>
+  </a>
+</div>

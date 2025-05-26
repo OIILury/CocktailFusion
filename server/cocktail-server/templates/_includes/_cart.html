@@ -1,0 +1,32 @@
+<div id="cart" class="cart" data-turbo-permanent>
+  <div class="cart__header">
+    <div class="cart__header__left">
+      <span class="icon-cart"></span>
+    </div>
+    <div class="cart__header__right">
+      <h3 class="cart__title">Ma sélection (202)</h3>
+      <button type="button" class="cart__detail--show">voir le détail</button>
+    </div>
+  </div>
+  <div class="cart__content">
+    <button type="button" class="cart__detail--hide">
+      Réduire
+      <span class="icon-end"></span>
+    </button>
+    <table class="cart__table">
+      <thead>
+        <tr>
+          <th>Hashtag</th>
+          <th>Fréquence</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="basket">
+        <!-- prettier-ignore -->
+        {% for item in basket %}
+          {% include "../_includes/_basket_item.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

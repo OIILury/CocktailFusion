@@ -1,0 +1,15 @@
+name: cocktail
+services:
+  postgresql:
+    image: postgres:15-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=cocktailuser
+      - POSTGRES_PASSWORD=cocktailuser
+      - POSTGRES_DB=cocktail_pg
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./.docker/postgresql:/var/lib/postgresql/data
+    # Pour voir toutes les requêtes SQL passer dans les log, décommenter la ligne suivante 
+    #command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]

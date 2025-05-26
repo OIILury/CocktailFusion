@@ -1,0 +1,2 @@
+ALTER TABLE project DROP COLUMN updated_at;
+ALTER TABLE project ADD COLUMN updated_at TEXT NOT NULL DEFAULT "1970-1-1";

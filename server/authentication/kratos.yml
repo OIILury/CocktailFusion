@@ -1,0 +1,103 @@
+version: v0.10.1
+
+dsn: "sqlite://./data.db?_fk=true&mode=rwc"
+# dsn: "sqlite:///Users/msa/Clients/UB/Cocktail/cocktail/front/server/authentication/data.db?_fk=true&mode=rwc"
+# dsn: memory
+
+serve:
+  public:
+    base_url: http://127.0.0.1:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://127.0.0.1:3000
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Cookie
+        - Content-Type
+        - Access-Control-Allow-Origin
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+  admin:
+    base_url: http://127.0.0.1:4434/
+
+selfservice:
+  default_browser_return_url: http://127.0.0.1:3000/home
+  allowed_return_urls:
+    - http://127.0.0.1:3000/home
+
+  methods:
+    password:
+      enabled: true
+  flows:
+    error:
+      ui_url: http://127.0.0.1:3000/error
+
+    settings:
+      ui_url: http://127.0.0.1:3000/settings
+      privileged_session_max_age: 15m
+
+    recovery:
+      enabled: true
+      ui_url: http://127.0.0.1:3000/recovery
+
+    verification:
+      enabled: true
+      ui_url: http://127.0.0.1:3000/verification
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/
+
+    logout:
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/
+
+    login:
+      ui_url: http://127.0.0.1:3000/auth/login
+      lifespan: 10m
+
+    registration:
+      lifespan: 10m
+      ui_url: http://127.0.0.1:3000/auth/registration
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/auth/login
+        # after:
+        #   password:
+        #     hooks:
+        #       -
+        #         hook: session
+
+log:
+  level: debug
+  format: text
+  leak_sensitive_values: true
+
+secrets:
+  cookie:
+    - rXj3nRIwkxRwZtS/WQ4OcL0LbNUzgeHn
+  cipher:
+    - i2nhcvnnVHaBBsHV/9T/t+MNIvKtFBiz
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file://./config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtp://127.0.0.1:1025

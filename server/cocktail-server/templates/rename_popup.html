@@ -1,0 +1,32 @@
+<turbo-stream action="after" target="main-site">
+  <template>
+    <div x-data>
+      <div class="mask">
+        <div class="popup popup-new"  @keyup.escape.window="$root.remove()" @click.outside="$root.remove()">
+          <header class="popup-header">
+            <h1 class="popup-title">Renommer l'étude</h1>
+            <a href="#" @click="$root.remove()">
+              <button type="button" class="popup-header__close">
+                <span class="icon-cross"></span>
+              </button>
+            </a>
+          </header>
+          <main class="popup-main">
+            <form action="/projets/{{project_id}}/rename" method="post" style="display: block; width: 100%; border: none;"> 
+              <label style="padding-bottom: 20px;">
+                <span>Nom de l'étude :</span>
+                <input type="text" name="title" id="title" required>
+              </label>
+              <div class="buttons buttons--spaceBetween" style="padding-top: 20px;">
+                <a href="#" @click="$root.remove()">
+                  <button type="button" class="cancel">Annuler</button>
+                </a>
+                <button type="submit" @click="$nextTick(() => { $root.remove() })">Valider</button>
+              </div>
+            </form>
+          </main>
+        </div>
+      </div>
+    </div>
+  </template>
+</turbo-stream>

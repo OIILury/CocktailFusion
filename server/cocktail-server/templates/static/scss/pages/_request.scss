@@ -1,0 +1,213 @@
+.request-view {
+  flex: 5;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  .view--grey {
+    background-color: $gris6;
+  }
+
+  .view-exclude {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: $blanc;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-bottom: 1rem;
+    min-height: 10rem;
+  }
+
+  .button-add {
+    color: $gris2;
+    font-weight: normal;
+
+    span {
+      color: $vert2;
+      font-size: 0.8rem;
+      padding: 0.2rem;
+      margin-left: 1rem;
+      margin-right: 0.3rem;
+      border-radius: 50%;
+      font-weight: bold;
+      border: 2px solid $vert2;
+    }
+  }
+
+  .button-exclude {
+    color: $gris2;
+    font-weight: normal;
+
+    span {
+      color: $rouge;
+      font-size: 0.8rem;
+      padding: 0.2rem;
+      margin-left: 1rem;
+      margin-right: 0.3rem;
+      border-radius: 50%;
+      font-weight: bold;
+      border: 2px solid $rouge;
+    }
+  }
+
+  .div-add-item-include {
+    position: relative;
+    width: 13rem; // ça empêche que la popup pour ajouter ne sorte de la page. Moche
+  }
+
+  .div-add-item-exclude {
+    position: relative;
+    width: 17rem; // ça empêche que la popup pour ajouter ne sorte de la page. Moche
+  }
+
+  .request-add-menu {
+    position: absolute;
+    left: 3rem;
+    white-space: nowrap;
+    visibility: hidden;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding-right: 0.3rem;
+    padding-left: 0.3rem;
+
+    border-radius: 0.3rem;
+    box-shadow: 1px 2px 2px 2px $gris;
+    background-color: $blanc;
+    color: $gris4;
+
+    z-index: 1;
+
+    .request-add-menu-line {
+      display: flex;
+      align-items: center;
+      margin-top: 0.3rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .request-add-menu-selection {
+      margin-right: 0.5rem;
+      color: $vert2;
+    }
+
+    .request-add-menu-exclusion {
+      margin-right: 0.5rem;
+      color: $rouge;
+    }
+  }
+
+  .request-subtitle {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+
+    margin-bottom: 1rem;
+
+    .request-helper {
+      margin-left: 2rem;
+      font-size: 0.9rem;
+      color: $gris3;
+    }
+
+    .title--green {
+      color: $vert2;
+    }
+
+    .title--red {
+      color: $rouge;
+    }
+  }
+
+  .request-block-exclude {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .request-block {
+    background-color: $blanc;
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 1px 5px 5px $gris;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .request-list-elements {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .request-element-include {
+    background-color: $vertPale;
+  }
+
+  .request-element-exclude {
+    background-color: $rouge2;
+  }
+
+  .request-element {
+    padding: 0.2rem;
+    font-weight: bold;
+
+    flex-direction: row;
+    align-items: center;
+
+    margin-bottom: 0.3rem;
+    margin-top: 0.3rem;
+  }
+
+  .and {
+    background-color: $gris2;
+    font-size: 0.8rem;
+
+    border-radius: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .delete-block {
+    align-self: flex-start;
+    font-size: 1.3rem;
+    color: $gris2;
+  }
+
+  .switch-exclude {
+    transform: translateY(-50%);
+  }
+
+  .div-switch-add {
+    margin-left: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+
+  .switch-and-or {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .button-add-bloc,
+  .button-add-bloc:hover {
+    background-color: transparent;
+    color: black;
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+}

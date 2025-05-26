@@ -1,0 +1,88 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Critères de collecte{% endblock %}
+
+{% block content %}
+{% let active_page = "collect" %}
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        {% include "_panel_criteria.html" %}
+
+        {% if is_analyzed %}
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+        {% endif %}
+      </aside>
+      
+      <div class="collect-view">
+        <div class="collect-card">
+            <h3>Nouvelle Collecte</h3>
+            
+            <!-- Nom de la collecte -->
+            <div class="input-group">
+                <label for="collectName">Nom de la collecte</label>
+                <input type="text" id="collectName" placeholder="Entrez le nom de votre collecte">
+            </div>
+    
+            <!-- Mots-clés -->
+            <div class="input-group">
+                <label for="keywords">Mots-clés</label>
+                <div class="keyword-input">
+                    <input type="text" id="keywords" placeholder="Entrez un mot-clé">
+                    <button id="addKeyword">Ajouter</button>
+                </div>
+            </div>
+    
+            <!-- Liste des mots-clés -->
+            <div class="keywords-list" id="keywordsList">
+                <!-- Les mots-clés seront ajoutés ici dynamiquement -->
+            </div>
+    
+            <!-- Sélection des réseaux sociaux -->
+            <div class="social-options">
+                <label>Réseaux sociaux</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="twitterCheck" checked>
+                        <label for="twitterCheck">Twitter</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="blueskyCheck" checked>
+                        <label for="blueskyCheck">Bluesky</label>
+                    </div>
+                </div>
+            </div>
+    
+            <button id="startCollect">Démarrer la collecte</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

@@ -1,0 +1,46 @@
+.slick-container {
+  flex: 1;
+  overflow: hidden;
+
+  .slick {
+    max-width: calc(100% - 80px);
+    margin: auto;
+  }
+}
+
+.slick-arrow {
+  background: $rouge;
+  color: $blanc;
+
+  &.slick-disabled {
+    background-color: $gris;
+  }
+
+  &:hover, &:focus {
+    &:not(.slick-disabled) {
+      background: darken($color: $rouge, $amount: 10%);
+    }
+  }
+
+  &::before {
+    opacity: 1;
+  }
+}
+
+.slick-prev::before {
+  content: "\e925";
+  font-family: 'icomoon';
+  font-size: 1rem;
+}
+
+.slick-next::before {
+  content: "\e926";
+  font-family: 'icomoon';
+  font-size: 1rem;
+}
+
+.slick-arrow.slick-disabled {
+  &::before {
+    opacity: 1;
+  }
+}

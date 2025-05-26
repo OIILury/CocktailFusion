@@ -1,0 +1,7 @@
+node_modules/
+_site
+templates/static/css/
+/target
+/.vscode
+db-web.db*
+sqlx-data.json

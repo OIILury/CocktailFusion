@@ -1,0 +1,270 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Importation{% endblock %}
+
+{% block content %}
+{% let active_page = "import" %}
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        {% include "_panel_criteria.html" %}
+
+        {% if is_analyzed %}
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+        {% endif %}
+      </aside>
+      
+      <div class="import-view">
+        <div class="import-card">
+            <h3>Nouvelle importation</h3>
+            
+            <!-- Nom de l'importation -->
+            <div class="input-group">
+                <label for="importName">Nom de l'importation</label>
+                <input type="text" id="importName" placeholder="Entrez le nom de votre importation">
+            </div>
+
+            <!-- Mode d'importation -->
+            <div class="import-mode">
+                <label>Mode d'importation</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="singleFileMode" name="importMode" value="single" checked>
+                        <label for="singleFileMode">Fichier unique (toutes les tables)</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="multipleFilesMode" name="importMode" value="multiple">
+                        <label for="multipleFilesMode">Fichiers multiples (une table par fichier)</label>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Zone de dépôt de fichiers -->
+            <div class="file-drop-zone" id="fileDropZone">
+                <div class="file-drop-content">
+                    <span class="icon-upload"></span>
+                    <p id="dropZoneText">Glissez et déposez votre fichier CSV ici</p>
+                    <p class="file-drop-hint">ou</p>
+                    <label for="fileInput" class="file-input-label">Parcourir les fichiers</label>
+                    <input type="file" id="fileInput" accept=".csv" multiple style="display: none;">
+                </div>
+            </div>
+
+            <!-- Liste des fichiers sélectionnés -->
+            <div class="selected-files" id="selectedFiles">
+                <!-- Les fichiers seront affichés ici -->
+            </div>
+    
+            <!-- Sélection des réseaux sociaux -->
+            <div class="social-options">
+                <label>Réseaux sociaux</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="twitterCheck" checked>
+                        <label for="twitterCheck">Twitter</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="blueskyCheck" checked>
+                        <label for="blueskyCheck">Bluesky</label>
+                    </div>
+                </div>
+            </div>
+    
+            <button id="startImport" class="primary-button">Démarrer l'importation</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initialisation de la page d\'importation');
+        const fileDropZone = document.getElementById('fileDropZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFiles = document.getElementById('selectedFiles');
+        const startImport = document.getElementById('startImport');
+        const singleFileMode = document.getElementById('singleFileMode');
+        const multipleFilesMode = document.getElementById('multipleFilesMode');
+        const dropZoneText = document.getElementById('dropZoneText');
+        let currentFiles = [];
+
+        // Gestion du mode d'importation
+        singleFileMode.addEventListener('change', () => {
+            dropZoneText.textContent = 'Glissez et déposez votre fichier CSV ici';
+            fileInput.removeAttribute('multiple');
+            currentFiles = [];
+            selectedFiles.innerHTML = '';
+        });
+
+        multipleFilesMode.addEventListener('change', () => {
+            dropZoneText.textContent = 'Glissez et déposez vos fichiers CSV ici';
+            fileInput.setAttribute('multiple', '');
+            currentFiles = [];
+            selectedFiles.innerHTML = '';
+        });
+
+        // Gestion du drag and drop
+        fileDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.add('dragover');
+            console.log('Fichier(s) survolant la zone de dépôt');
+        });
+
+        fileDropZone.addEventListener('dragleave', () => {
+            fileDropZone.classList.remove('dragover');
+            console.log('Fichier(s) quittant la zone de dépôt');
+        });
+
+        fileDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            console.log('Fichiers déposés:', files.map(f => f.name));
+            handleFiles(files);
+        });
+
+        // Gestion du clic sur le bouton "Parcourir"
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            console.log('Fichiers sélectionnés:', files.map(f => f.name));
+            handleFiles(files);
+        });
+
+        // Gestion des fichiers sélectionnés
+        function handleFiles(files) {
+            const validFiles = files.filter(file => 
+                file.type === 'text/csv' || file.type === 'application/vnd.ms-excel'
+            );
+
+            if (validFiles.length === 0) {
+                console.error('Aucun fichier CSV valide');
+                alert('Veuillez sélectionner au moins un fichier CSV valide');
+                return;
+            }
+
+            if (singleFileMode.checked && validFiles.length > 1) {
+                console.error('Trop de fichiers pour le mode fichier unique');
+                alert('Veuillez sélectionner un seul fichier en mode fichier unique');
+                return;
+            }
+
+            currentFiles = validFiles;
+            
+            // Mettre le nom du premier fichier dans l'input importName si en mode fichier unique
+            if (singleFileMode.checked) {
+                const importNameInput = document.getElementById('importName');
+                const fileNameWithoutExtension = validFiles[0].name.replace(/\.csv$/i, '');
+                importNameInput.value = fileNameWithoutExtension;
+            }
+            
+            // Afficher les fichiers sélectionnés
+            selectedFiles.innerHTML = validFiles.map(file => `
+                <div class="selected-file">
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                </div>
+            `).join('');
+        }
+
+        // Formatage de la taille du fichier
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Gestion du bouton d'importation
+        startImport.addEventListener('click', async () => {
+            console.log('Début de l\'importation');
+            
+            if (currentFiles.length === 0) {
+                console.error('Aucun fichier sélectionné');
+                alert('Veuillez sélectionner au moins un fichier CSV');
+                return;
+            }
+
+            const importName = document.getElementById('importName').value;
+            if (!importName) {
+                console.error('Nom d\'importation manquant');
+                alert('Veuillez entrer un nom pour l\'importation');
+                return;
+            }
+
+            console.log('Préparation de l\'importation:', {
+                files: currentFiles.map(f => f.name),
+                importName: importName
+            });
+
+            const formData = new FormData();
+            currentFiles.forEach(file => {
+                formData.append('files', file);
+            });
+            formData.append('name', importName);
+            formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
+
+            try {
+                console.log('Envoi de la requête d\'importation');
+                const projectId = '{{ project_id }}';
+                console.log('ID du projet:', projectId);
+                const response = await fetch(`/api/import/csv?project_id=${projectId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log('Réponse du serveur:', result);
+                
+                if (response.ok) {
+                    console.log('Importation réussie:', {
+                        rowsImported: result.rows_imported,
+                        message: result.message
+                    });
+                    alert(`Import réussi ! ${result.rows_imported} lignes importées.`);
+                    // Réinitialiser le formulaire
+                    document.getElementById('importName').value = '';
+                    selectedFiles.innerHTML = '';
+                    currentFiles = [];
+                } else {
+                    console.error('Erreur lors de l\'importation:', {
+                        status: response.status,
+                        message: result.message
+                    });
+                    alert(`Erreur lors de l'import : ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'importation:', error);
+                alert('Une erreur est survenue lors de l\'importation');
+            }
+        });
+    });
+  </script>
+</body>
+
+</html>
+{% endblock %}

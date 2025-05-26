@@ -1,0 +1,49 @@
+#!/usr/bin/env groovy
+
+library 'atolcd-jenkins'
+
+def MESSAGE_TRIGGER = ""
+pipeline {
+  options {
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+  }
+  agent {
+    label 'docker&&ovh'
+  }
+  stages {
+    stage('backend check') {
+      steps {
+            insideDocker(imageName: 'rust', imageVersion: '1.65.0') {
+              dir(path: 'server') {
+                sh 'SQLX_OFFLINE=true cargo build --release'
+              }
+            }
+          }
+      post {
+        success {
+          script { MESSAGE_TRIGGER = "${MESSAGE_TRIGGER} ✅ cargo build " }
+        }
+        failure {
+          script { MESSAGE_TRIGGER = "${MESSAGE_TRIGGER} ❌ cargo build " }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      sh 'git checkout -- .'
+    }
+    success {
+      script {
+        zulipSend stream: 'Cocktail', topic: '✅ YATTA !', message: ":check: Build [${BUILD_NUMBER}](${BUILD_URL}) gerrit trigger succeeded r${GERRIT_CHANGE_NUMBER} :rust: "
+      }
+    }
+    failure {
+      script {
+        setGerritReview unsuccessfulMessage: "${MESSAGE_TRIGGER} failed !"
+        zulipSend stream: 'Cocktail', topic: '️❌ Nelson', message: ":working_on_it: Build [${BUILD_NUMBER}](${BUILD_URL}) ${MESSAGE_TRIGGER} r${GERRIT_CHANGE_NUMBER} :nelson: "
+      }
+    }
+  }
+}

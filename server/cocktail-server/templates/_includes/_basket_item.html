@@ -1,0 +1,21 @@
+<tr id="basket-{{item.item_id}}">
+  {% if item.kind == ItemKind::Corpus %}
+  <td>Corpus - {{item.name}}</td>
+  <td>{{item.count}} hashtag(s)</td>
+  {% else %}
+  <td>#{{item.name}}</td>
+  <td></td>
+  {% endif %}
+  <td>
+    <form action="/projects/:project_id/basket" method="post" id="toggle-{{item.item_id}}">
+      <input type="hidden" name="item_id" value="{{item.item_id}}" />
+      <input type="hidden" name="kind" value="{{item.kind}}" />
+      <input type="hidden" name="available" value="true" />
+
+      <b>TODO: form action à changer</b>
+      <button class="button--icon">
+        <span class="icon-trash"></span>
+      </button>
+    </form>
+  </td>
+</tr>

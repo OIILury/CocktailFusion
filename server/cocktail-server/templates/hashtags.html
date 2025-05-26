@@ -1,0 +1,104 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Étude - Hashtags{% endblock %}
+
+{% block content %}
+{% let active_page = "hashtags" %}
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        {% include "_panel_criteria.html" %}
+
+        {% if is_analyzed %}
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+        {% endif %}
+      </aside>
+      
+      <div class="views-row">
+        <div class="view-col hashtagList hashtagList--notEmpty">
+          <turbo-frame id="hashtagList">
+            <div class="hashtagList-header">
+              <h2 class="title title--grey"><b>Rechercher</b> les tweets contenant ces #hashtag <span
+                  class="icon-questioning"></span></h2>
+              <a href="{{ popup_path }}" class="action-addHashtags button--green">
+                <span class="icon-plus"></span>
+                <span>Sélectionner des #</span>
+              </a>
+            </div>
+          </turbo-frame>
+
+          <table class="table-hashtags-list">
+            <thead>
+              <tr>
+                <th>Hashtag</th>
+                <th>Fréquence <span class="icon-questioning"></span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="include-basket">
+              {% for hashtag in include_basket %}
+              {% let kind = "remove" %}
+              {% include "_hashtag_include_row.html" %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="view-col hashtagList hashtagList--notEmpty">
+          <turbo-frame id="hashtagList">
+            <div class="hashtagList-header">
+              <h2 class="title title--grey"><b>Exclure</b> les tweets contenant ces #hashtag <span
+                  class="icon-questioning"></span></h2>
+              <a href="{{ popup_path }}?exclude=true" type="button" class="action-addHashtags button--red">
+                <span class="icon-cross"></span>
+                <span>Exclure des #</span>
+              </a>
+            </div>
+          </turbo-frame>
+          <table class="table-hashtags-list">
+            <thead>
+              <tr>
+                <th>Hashtag</th>
+                <th>Fréquence <span class="icon-questioning"></span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="exclude-basket">
+              {% for hashtag in exclude_basket %}
+              {% let kind = "remove" %}
+              {% include "_hashtag_exclude_row.html" %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

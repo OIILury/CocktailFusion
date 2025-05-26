@@ -1,0 +1,116 @@
+<aside class="aside-graphique" id="aside-hashtags-chart">
+  <div class="aside-graphique__top" x-data>
+    <h3 class="subtitle">#hashtags</h3>
+    <form action="{{tweets_graph_path}}/{{tab}}/{{ aside_tweet_tab }}" method="post" class="visibility-form">
+      <input type="hidden" name="hidden" value="{{!hidden}}" />
+      <input type="hidden" name="query_auteur" value='{% if selected_author != "" %}{{ selected_author }}{% endif %}' />
+
+      {% if aside_tweet_tab == "project" %}
+      <input type="hidden" name="hashtag" value="{% for frequence in frequences %}{{frequence.hashtag}},{% endfor %}" />
+      {% else if aside_tweet_tab == "project" %}
+      <input type="hidden" name="hashtag"
+        value="{% for frequence in frequences_topk %}{{frequence.hashtag}},{% endfor %}" />
+      {% else if aside_tweet_tab == "cooccurence" %}
+      <input type="hidden" name="hashtag"
+        value="{% for cooccurence in frequences_cooccurence %}{{cooccurence.label}},{% endfor %}" />
+      {% endif %}
+
+      <button class="button--visibility" type="submit">
+        {% if hidden %} <h3 class="subtitle">Tout afficher</h3> {% else %} <h3 class="subtitle">Tout cacher</h3>{% endif
+        %}
+      </button>
+    </form>
+  </div>
+  <div class="legend-graph">
+    <div class="tabs">
+      <a href=' {{ tweets_graph_path }}/{{ tab }}/project{% if selected_author !="" %}?auteur={{ selected_author }}{%
+        endif %}' class='button tab {% if aside_tweet_tab == "project" %} active {% endif %}'>sélectionnés</a>
+      <a href='{{ tweets_graph_path }}/{{ tab }}/top{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+        class='tab button {% if aside_tweet_tab == "top" %} active {% endif %}'>top</a>
+      <a href='{{ tweets_graph_path }}/{{ tab }}/cooccurence{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+        class='tab button {% if aside_tweet_tab == "cooccurence" %} active {% endif %}'>cooccurence</a>
+    </div>
+  </div>
+  <div class="aside-graphique-legend">
+    {% if aside_tweet_tab == "project" %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for frequence in frequences %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <form action='{{tweets_graph_path}}/{{tab}}/{{ aside_tweet_tab }}' method="post"
+              id="tweets-{{frequence.hashtag}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="hashtag" value="{{frequence.hashtag}}" />
+              <input type="hidden" name="query_auteur"
+                value='{% if selected_author != "" %}{{ selected_author }}{% endif %}' />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else if aside_tweet_tab == "top" %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for frequence in frequences_topk %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <form action='{{tweets_graph_path}}/{{tab}}/{{ aside_tweet_tab }}' method="post"
+              id="tweets-{{frequence.hashtag}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="hashtag" value="{{frequence.hashtag}}" />
+              <input type="hidden" name="query_auteur"
+                value='{% if selected_author != "" %}{{ selected_author }}{% endif %}' />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else if aside_tweet_tab == "cooccurence" %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for frequence in frequences_cooccurence %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.label}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.label}}">{{frequence.label}}</span>
+          </td>
+          <td>
+            <form action='{{tweets_graph_path}}/{{tab}}/{{ aside_tweet_tab }}' method="post"
+              id="tweets-{{frequence.label}}" class="visibility-form">
+              <input type="hidden" name="hidden" value="{{!frequence.hidden}}" />
+              <input type="hidden" name="hashtag" value="{{frequence.label}}" />
+              <input type="hidden" name="query_auteur"
+                value='{% if selected_author != "" %}{{ selected_author }}{% endif %}' />
+              <button class="button--visibility" type="submit">
+                <span class="{% if frequence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</aside>

@@ -1,0 +1,13 @@
+FROM rocker/verse:latest
+RUN R -e "install.packages('RPostgreSQL',repos='http://cran.us.r-project.org')"
+RUN R -e "install.packages('igraph',repos='http://cran.us.r-project.org')"
+RUN R -e "install.packages('DBI',repos='http://cran.us.r-project.org')"
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		libpq-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY . /usr/local/src/myscripts
+WORKDIR /usr/local/src/myscripts
+ENTRYPOINT ["Rscript", "create-data-graph.R"]

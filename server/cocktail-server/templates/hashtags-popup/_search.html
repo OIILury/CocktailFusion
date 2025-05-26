@@ -1,0 +1,35 @@
+<turbo-frame id="popup-main">
+  <main class="popup-main">
+    <div class="view-row">
+      <form id="search-form" style="display: none;" method="get" action="{{ hashtags_search_path }}">
+        <input type="hidden" name="exclude" value="{{ exclude_popup_style }}">
+        {% if block_id.is_some() %}
+        <input type="hidden" name="block_id" value="{{block_id.unwrap()}}" />
+        {% endif %}
+      </form>
+      <div class="search">
+        <input form="search-form" autofocus autocomplete="off" type="search" size="50" name="q" id="search"
+          placeholder="inscrivez un mot-clé ou un #hashtag" x-init="$nextTick(() => { $el.focus() })">
+        <button type="submit"><span class="icon-search"></span></button>
+      </div>
+      <span class="icon-questioning"></span>
+    </div>
+
+    <table class="table-hashtags-list">
+      <thead>
+        <tr>
+          <th>Hashtag</th>
+          <th>Fréquence <span class="icon-questioning"></span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="hashtag-search-result">
+        <tr>
+          <td colspan="3">
+            Aucun résultat. Essayez "vegan" par exemple
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</turbo-frame>

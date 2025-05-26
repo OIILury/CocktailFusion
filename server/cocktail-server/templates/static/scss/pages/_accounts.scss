@@ -1,0 +1,23 @@
+form.form-accounts {
+  width: 100%;
+  .title {
+    margin-bottom: 0;
+  }
+}
+
+.userAccounts-fields {
+  margin-bottom: 2rem;
+
+  > * {
+    flex: 1;
+
+    input[type="text"] {
+      width: min(100%, 1245px);
+    }
+  }
+
+  .helper {
+    margin-top: -0.75rem;
+    margin-left: 0.9rem;
+  }
+}

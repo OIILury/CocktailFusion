@@ -1,0 +1,168 @@
+<script type="text/javascript" src="/static/vendors/sigma.min.js"></script>
+<script type="text/javascript" src="/static/vendors/graphology.min.js"></script>
+<link
+href="http://fonts.googleapis.com/css?family=Raleway:400,100,200,300,500,600,800,700,900"
+rel="stylesheet"
+type="text/css" />
+<script type="text/javascript">
+  let container, graph, renderer;
+
+  const state = {};
+
+  const selectNode = (node) => {
+    $("ul.list-membre").empty();
+    $(".returntext").hide();
+    if (state.selectedNode === node) {
+      node = null;
+    }
+    if (node) {
+      state.selectedNode = node;
+      state.selectedNeighbors = new Set(graph.neighbors(node));
+      $(".returntext").show();
+      $(".title-connexion").html(`Les connexions de ${node}`);
+    } else {
+      $(".title-connexion").html(`Communauté complète`);
+      state.selectedNode = undefined;
+      state.selectedNeighbors = undefined;
+    }
+
+    renderer.refresh();
+
+    var f = [];
+
+    if (state.selectedNode !== undefined) {
+      graph.forEachNeighbor(
+        state.selectedNode,
+        function (neighbor, attributes) {
+          f.push(`<li class="membership"
+    onclick="selectNode('${neighbor}')" 
+    >
+        <span 
+            class="name-twitter"
+        >${neighbor}</span>
+        <span class="id-twitter">@${neighbor}</span>
+        <a class="link-twitter" href="https://twitter.com/${neighbor}" target="_blank">voir sur twitter</a>
+    </li>`);
+        }
+      );
+      $("ul.list-membre").html(f.join(""));
+    }
+  };
+
+  $(function () {
+    fetch(`/static/vegan/data.json`)
+      .then((res) => res.json())
+      .then((dataset) => {
+        $(".returntext").hide();
+        container = document.getElementById("sigma-container");
+
+        graph = new graphology.Graph();
+
+        dataset.nodes.forEach((node) =>
+          graph.addNode(node.id, {
+            ...node,
+          })
+        );
+        dataset.edges.forEach((edge) =>
+          graph.addEdge(edge.from, edge.to, { ...edge })
+        );
+
+        const scores = graph
+          .nodes()
+          .map((node) => graph.getNodeAttribute(node, "size"));
+        const minDegree = Math.min(...scores);
+        const maxDegree = Math.max(...scores);
+        const MIN_NODE_SIZE = 1;
+        const MAX_NODE_SIZE = 7;
+        graph.forEachNode((node) =>
+          graph.setNodeAttribute(
+            node,
+            "size",
+            ((graph.getNodeAttribute(node, "size") - minDegree) /
+              (maxDegree - minDegree)) *
+              (MAX_NODE_SIZE - MIN_NODE_SIZE) +
+              MIN_NODE_SIZE
+          )
+        );
+
+        const scoresEdge = graph
+          .edges()
+          .map((edge) => graph.getEdgeAttribute(edge, "size"));
+        const minDegreeEdge = Math.min(...scoresEdge);
+        const maxDegreeEdge = Math.max(...scoresEdge);
+        const MIN_EDGE_SIZE = 0.2;
+        const MAX_EDGE_SIZE = 0.5;
+        graph.forEachEdge((edge) => {
+          graph.setEdgeAttribute(
+            edge,
+            "size",
+            ((graph.getEdgeAttribute(edge, "size") - minDegreeEdge) /
+              (maxDegree - maxDegreeEdge)) *
+              (MAX_EDGE_SIZE - MIN_EDGE_SIZE) +
+              MIN_EDGE_SIZE
+          );
+        });
+
+        renderer = new Sigma(graph, container, {
+          enableEdgeClickEvents: true,
+          allowInvalidContainer: true,
+        });
+
+        renderer.on("clickNode", ({ node }) => selectNode(node));
+
+        renderer.setSetting("nodeReducer", (node, data) => {
+          const res = { ...data };
+
+          if (
+            state.selectedNeighbors &&
+            !state.selectedNeighbors.has(node) &&
+            state.selectedNode !== node
+          ) {
+            res.hidden = true;
+          }
+
+          if (state.selectedNode === node) {
+            res.highlighted = true;
+          }
+
+          return res;
+        });
+
+        renderer.setSetting("edgeReducer", (edge, data) => {
+          const res = { ...data };
+
+          if (
+            state.selectedNode &&
+            !graph.hasExtremity(edge, state.selectedNode)
+          ) {
+            res.hidden = true;
+          }
+
+          return res;
+        });
+
+        $(".returntext").click(() => {
+          selectNode(null);
+        });
+      });
+  });
+</script>
+<div
+  id="etude-tendance"
+  class="etude-panel graph-vegan page-parent etude-hidden">
+  <div class="sigma-parent">
+    <h3 class="chart-title">Communauté liée au hashtag #vegan</h3>
+    <div id="sigma-container"></div>
+  </div>
+  <div id="attributepane">
+    <div class="header-pane">
+      <h3 class="title-connexion chart-title">Communauté complète</h3>
+      <button class="button returntext">Retour communauté complète</button>
+    </div>
+    <div class="nodeattributes">
+      <div class="link">
+        <ul class="list-membre"></ul>
+      </div>
+    </div>
+  </div>
+</div>

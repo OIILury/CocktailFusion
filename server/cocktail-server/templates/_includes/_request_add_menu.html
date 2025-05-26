@@ -1,0 +1,66 @@
+{% if type == "selection" %}
+<div class="request-add-menu" style="top:0" onclick="this.style.visibility='hidden'">
+    <form style="display: none;" action="{{ popup_hashtags_path }}" method="get" id="form-popup-hashtags-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+        <input type="hidden" name="exclude" value="false" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-hashtags-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-hashtag request-add-menu-selection"></span>
+        Ajouter un hashtag
+    </div>
+    <form style="display: none;" action="{{ popup_keywords_path }}" method="get" id="form-popup-keywords-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-keywords-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-key request-add-menu-selection"></span>
+        Ajouter un mot clé
+    </div>
+    <form style="display: none;" action="{{ popup_accounts_path }}" method="get" id="form-popup-accounts-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-accounts-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-arobase request-add-menu-selection"></span>
+        Ajouter un compte utilisateur
+    </div>
+</div>
+{% endif %}
+
+{% if type == "exclusion" %}
+<div class="request-add-menu" style="bottom:0">
+    <form style="display: none;" action="{{ popup_hashtags_path }}" method="get" id="form-popup-hashtags-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+        <input type="hidden" name="exclude" value="true" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-hashtags-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-hashtag request-add-menu-exclusion"></span>
+        Exclure un hashtag
+    </div>
+    <form style="display: none;" action="{{ popup_keywords_path }}" method="get" id="form-popup-keywords-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-keywords-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-key request-add-menu-exclusion"></span>
+        Exclure un mot clé
+    </div>
+    <form style="display: none;" action="{{ popup_accounts_path }}" method="get" id="form-popup-accounts-{{ block_id }}">
+        <input type="hidden" name="block_id" value="{{ block_id }}" />
+    </form>
+    <div class="request-add-menu-line"
+        onClick="document.getElementById('form-popup-accounts-{{ block_id }}').requestSubmit();"
+        style="cursor:pointer">
+        <span class="icon-arobase request-add-menu-exclusion"></span>
+        Exclure un compte utilisateur
+    </div>
+</div>
+{% endif %}
+

@@ -1,0 +1,58 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Résultats Hashtags{% endblock %}
+
+{% block content %}
+{% let active_page = "result_hashtags" %}
+
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        {% let active_page = "result_hashtags" %}
+        {% include "_panel_criteria.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+      </aside>
+
+      <div class="graph-hashtags">
+        <div>
+          {% include "_includes/_hashtags_chart.html" %}
+        </div>
+        <div>
+          <turbo-frame id="aside-hashtags-chart"
+            src="{{ aside_hashtag_path }}{% if superpose %}?superpose=true{% endif %}">
+          </turbo-frame>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

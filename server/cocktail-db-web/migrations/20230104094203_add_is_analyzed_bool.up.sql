@@ -1,0 +1,1 @@
+ALTER TABLE project ADD COLUMN is_analyzed INTEGER NOT NULL DEFAULT(0) ;

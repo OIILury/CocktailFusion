@@ -1,0 +1,15 @@
+<fieldset class="text-input-fieldset" data-testid="node/input/{{attributes.name}}">
+	<label>
+		<span class="typography-h3">{{getNodeLabel node}} {{#if attributes.required}}
+			<span class="required-indicator">*</span>{{/if}}
+		</span>
+		<input class="text-input" name="{{attributes.name}}" type="{{attributes.type}}"
+			value="{{attributes.value}}" placeholder="{{getNodeLabel node}}" {{#if
+			attributes.disabled}}disabled{{/if}} />
+	</label>
+	{{#if messages}}
+	<div class="typography-caption">
+		{{> messages.html }}
+	</div>
+	{{/if}}
+</fieldset>

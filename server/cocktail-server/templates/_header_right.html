@@ -1,0 +1,7 @@
+<div class="header__right">
+  <div class="logout">
+    <a href="{{ logout_url }}"
+      onclick='document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });'
+      class="icon-logout"></a>
+  </div>
+</div>

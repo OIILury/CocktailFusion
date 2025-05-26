@@ -1,0 +1,25 @@
+<form action="periode" method="post" class="form-periode" style="display: flex; flex-direction: column"
+  x-data="{ showCustomRange: {{ show_custom_range }}}" id="range">
+  <label>
+    <span>Durée :</span>
+    <select name="duree" id="duree" name="duree"
+      @change="showCustomRange = $event.target.selectedIndex == 1;document.getElementById('range').requestSubmit();">
+      <option value="auto" {% if !show_custom_range %}selected{% endif %}>Les 6 derniers mois</option>
+      <option value="manual" {% if show_custom_range %}selected{% endif %}>manuelle</option>
+    </select>
+  </label>
+  <div x-show="showCustomRange" x-cloak>
+    <div style="display: flex; flex-direction: row">
+      <label for="start-date" style="flex-direction: row; align-items: center">
+        du
+        <input id="start-date" type="date" name="start_date" value="{{ start_date }}"
+          onblur="document.getElementById('range').requestSubmit();">
+      </label>
+      <label for="end-date" style="flex-direction: row; align-items: center">
+        au
+        <input id="end-date" type="date" name="end_date" value="{{ end_date }}"
+          onblur="document.getElementById('range').requestSubmit();">
+      </label>
+    </div>
+  </div>
+</form>

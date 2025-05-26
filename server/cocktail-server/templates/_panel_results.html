@@ -1,0 +1,46 @@
+<div class="panel" {% if active_page!="daterange" && active_page!="hashtags" && active_page!="request" %}
+  style="display: block;" {% endif %}>
+  <a href="{{ tweets_graph_path }}" class='aside__item {% if active_page == "tweets" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-histo1"></span>
+      <span class="aside__item__text">Fréquence des tweets</span>
+    </div>
+  </a>
+  {% if niveau == 2 %}
+  <a href="{{ authors_path }}" class='aside__item {% if active_page == "authors" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-authors"></span>
+      <span class="aside__item__text">Auteurs des tweets ({{ authors_count|num_format }})</span>
+    </div>
+  </a>
+  {% else %}
+  <a href="#" class='aside__item disabled'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-authors"></span>
+      <span class="aside__item__text">Auteurs des tweets ({{ authors_count|num_format }})</span>
+    </div>
+  </a>
+  {% endif %}
+  <a href="{{ result_hashtags_path }}" class='aside__item {% if active_page == "result_hashtags" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-histo2"></span>
+      <span class="aside__item__text">Fréquence des hashtags</span>
+    </div>
+  </a>
+  {% if niveau == 2 %}
+  <a href="{{ communities_path }}" data-turbo="false"
+    class='aside__item {% if active_page == "communities" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-communaute"></span>
+      <span class="aside__item__text">Communautés</span>
+    </div>
+  </a>
+  {% else %}
+  <a href="#" class='aside__item disabled'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-communaute"></span>
+      <span class="aside__item__text">Communautés</span>
+    </div>
+  </a>
+  {% endif %}
+</div>

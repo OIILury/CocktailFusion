@@ -1,0 +1,26 @@
+{% if modularity > 0.0 && modularity < 0.5 %} <b>La modularité n'est pas suffisante pour afficher des résultats
+	corrects.</b>
+	<b>Modularité: {{ modularity }}</b>
+	{% else %}
+	<div class="community-status">
+		{% for state in status %}
+		<div>{{ state.datetime|datetime }} : {% if state.status == "started" %}Début de l'analyse{% elseif
+			state.status
+			== "done" %}Analyse terminée{% else %}Erreur de traitement{% endif %}</div>
+		{% endfor %}
+	</div>
+	{% if status.len() == 1 && status[0].status == "started" %}
+	<b>
+		Analyse en cours, rafraîchissez la page dans quelques instants
+	</b>
+	{% elseif status.len() > 1 && modularity < 0.5 %} <b>Aucune donnée.</b>
+		{% elseif status.len() > 1 && modularity >= 0.5 %}
+		La génération du graphique est impossible pendant l'analyse
+		<form
+			action="{{ communities_path }}/{{ tab }}/{{ community }}/{{ centrality }}/{{ max_rank }}/{{ show_interaction }}"
+			method="post" class="analyse">
+			<input type="hidden" name="force" value="1" />
+			<button type="submit">Générer le graphique</button>
+		</form>
+		{% endif %}
+		{% endif %}

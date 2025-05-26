@@ -1,0 +1,15 @@
+<turbo-frame id="authors-select">
+  <label>
+    <span>pour l'utilisateur :</span>
+    <select name="forUser" id="forUser"
+      onChange="window.location.replace('{{ tweets_graph_path }}/{{ tab }}?auteur=' + document.getElementById('forUser').value);">
+      <option value="" {% if selected_author=="" %} selected {% endif %}></option>
+      {% for author in authors %}
+      <option value="{{ author.user_screen_name }}" {% if author.user_screen_name==selected_author %} selected {% endif
+        %}>
+        {{ author.user_name }} ({{ author.user_screen_name }})
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+</turbo-frame>

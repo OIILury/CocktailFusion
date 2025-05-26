@@ -1,0 +1,68 @@
+set dotenv-load
+
+# Ex: just profile=debug serve
+# release (default) or debug
+profile := 'release'
+
+build-all-debug:
+  cargo build
+
+# release profile only
+build-release bin:
+  cargo build --release --target x86_64-unknown-linux-musl --bin {{bin}}
+
+build-debug bin:
+  cargo build --bin {{bin}}
+
+dev:
+  cargo build
+  ./target/debug/cocktail serve
+
+watch-dev: scss
+  cargo watch  -x 'run --bin cocktail -- serve'
+
+serve:
+  ./target/{{profile}}/cocktail serve
+
+scss:
+  cd cocktail-server/ && npm run sass:watch &
+
+# release profile only
+docker-build bin:
+  docker run --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp -e SQLX_OFFLINE=true rust:latest cargo build --bin {{bin}} --release
+
+# release profile only
+deploy bin: (build-release bin)
+  scp target/x86_64-unknown-linux-musl/release/{{bin}} ub-cocktail-dev.dvt.cloud.priv.atolcd.com:/usr/local/lib
+
+deploy-qualif bin: (build-release bin)
+  scp target/x86_64-unknown-linux-musl/release/{{bin}} ub-cocktail-qualif.demo.hosting.priv.atolcd.com:/usr/local/lib
+
+dl graphid:
+  scp ub-cocktail-dev.dvt.cloud.priv.atolcd.com:/usr/local/lib/figures/output_{{graphid}}_user_user_retweet_centralites.html .
+
+servehttp:
+  httplz . &
+
+serve-graph graphid: (dl graphid) servehttp
+  open http://localhost:8000/output_{{graphid}}_user_user_retweet_centralites.html
+
+kratos:
+  kratos serve --config ./authentication/kratos.yml --dev
+
+search query:
+  ./target/{{profile}}/cocktail index search --query '{{query}}' --limit 10
+
+topk-db schema:
+  ./target/{{profile}}/topk --directory-path ./tantivy-data/{{schema}} --query "*" | sqlite-utils insert --not-null key --not-null doc_count topk.db hashtag -
+
+docker-topk-db schema:
+  ./target/{{profile}}/topk --directory-path ./tantivy-data/{{schema}} --query "*" | docker run -i --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp  ghcr.io/williamjacksn/sqlite-utils:latest insert --not-null key --not-null doc_count topk.db hashtag -
+
+_prepare-db-web:
+  cd ./cocktail-db-web && cargo sqlx prepare --merged
+
+prepare: _prepare-db-web
+
+# study clear:
+#   ./target/{{profile}}/cocktail study clear

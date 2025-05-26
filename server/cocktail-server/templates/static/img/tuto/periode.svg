@@ -1,0 +1,10 @@
+<svg id="Groupe_1917" data-name="Groupe 1917" xmlns="http://www.w3.org/2000/svg" width="239" height="45" viewBox="0 0 239 45">
+  <g id="Groupe_1523" data-name="Groupe 1523" transform="translate(0 0)">
+    <rect id="Rectangle_554" data-name="Rectangle 554" width="239" height="45" fill="#292929"/>
+    <text id="Période" transform="translate(48 26)" fill="#fff" font-size="14" font-family="Titillium-Semibold, Titillium" font-weight="600"><tspan x="0" y="0">Période</tspan></text>
+    <g id="Groupe_1524" data-name="Groupe 1524" transform="translate(13.559 11.963)">
+      <path id="Tracé_545" data-name="Tracé 545" d="M0,0H19.142V19.142H0Z" fill="none"/>
+      <path id="Tracé_546" data-name="Tracé 546" d="M16.356,2.6h-.8V1.8a.8.8,0,0,0-1.6,0v.8H5.988V1.8a.8.8,0,1,0-1.6,0v.8H3.6A1.6,1.6,0,0,0,2,4.19V16.951a1.6,1.6,0,0,0,1.6,1.6H16.356a1.6,1.6,0,0,0,1.6-1.6V4.19A1.6,1.6,0,0,0,16.356,2.6Zm-.8,14.356H4.393a.8.8,0,0,1-.8-.8V6.583H16.356v9.571A.8.8,0,0,1,15.559,16.951Z" transform="translate(-0.405 -0.202)" fill="#fff"/>
+    </g>
+  </g>
+</svg>

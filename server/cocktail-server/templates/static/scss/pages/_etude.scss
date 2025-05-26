@@ -1,0 +1,171 @@
+.page-hashtags {
+  .views-row > div {
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+    border-bottom: 2px solid #000;
+  }
+
+  .view-col {
+    flex: 1 0 0;
+    padding: 1rem;
+  }
+}
+
+.hashtags-whiteList,
+.hashtags-blackList {
+  .icon-questioning {
+    font-size: 1.25rem;
+    margin-left: 0.25rem;
+  }
+}
+
+.action-addHashtags {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem auto;
+}
+
+.action-excludeHashtags {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem auto;
+  background-color: $rouge;
+
+  &:hover {
+    background-color: darken($color: $rouge, $amount: 10%);
+  }
+}
+
+.hashtagList {
+  &--notEmpty {
+    .hashtagList-header {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .action-addHashtags {
+      margin: 0 auto;
+    }
+  }
+
+  &-header {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/*POPUP*/
+.selected button,
+.notSelected button {
+  ::before {
+    margin-right: -0.5rem;
+    transition: 0.25s;
+    opacity: 0;
+  }
+
+  &:hover ::before {
+    margin-right: 0.5rem;
+    opacity: 1;
+  }
+}
+
+.selected button {
+  color: $rouge;
+}
+
+.notSelected button {
+  color: $vert2;
+}
+
+.popup-hashtags--exclude {
+  .popup-title {
+    color: $rouge;
+  }
+
+  .helper {
+    margin-top: -0.75rem;
+    margin-left: 0.75rem;
+  }
+}
+
+.popup-hashtags--search {
+  .view-row {
+    align-items: center;
+  }
+
+  .search {
+    .icon-search::before,
+    ::placeholder {
+      color: $gris2;
+    }
+  }
+}
+
+.hastags-selected-number {
+  margin-left: auto;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.aside-graphique-legend__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.aside-graphique-legend__table tr {
+  border-top: 1pt solid #d8d8d8;
+}
+
+.aside-graphique-legend__table td:first-of-type {
+  vertical-align: middle;
+  padding-left: 15px;
+}
+
+.aside-graphique-legend__table td:last-of-type {
+  text-align: right;
+  vertical-align: middle;
+  padding-right: 15px;
+}
+
+.graph-hashtags {
+  display: flex;
+  flex: 1;
+
+  & > div:first-of-type {
+    display: flex;
+    flex: 0.7;
+  }
+
+  & > div:last-of-type {
+    display: flex;
+    flex: 0.3;
+    background-color: #ededed;
+  }
+
+  .view-col div:last-of-type {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .aside-graphique__top {
+    padding: 2rem 1rem 0rem;
+  }
+
+  .tabs {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.legend-graph {
+  label {
+    flex-direction: row;
+    padding-left: 1rem;
+    padding-bottom: 0.5rem;
+    align-items: baseline;
+  }
+}

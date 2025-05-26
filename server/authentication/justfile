@@ -1,0 +1,13 @@
+set dotenv-load
+
+kratos:
+  kratos serve --config ./kratos.yml --dev
+
+docker-kratos:
+  docker run -p 4433:4433 --rm --user "$(id -u)":"$(id -g)" -v $(pwd):/home/ory oryd/kratos:v0.10.1 serve --config ./kratos.yml --dev
+
+migrate:
+  DSN="sqlite://./data.db?_fk=true&mode=rwc" kratos -c ./kratos.yml migrate sql -e
+
+docker-migrate:
+  docker run --rm  --user "$(id -u)":"$(id -g)" -v $(pwd):/home/ory -e DSN="sqlite://./data.db?_fk=true&mode=rwc" oryd/kratos:v0.10.1 -c ./kratos.yml migrate sql -e -y

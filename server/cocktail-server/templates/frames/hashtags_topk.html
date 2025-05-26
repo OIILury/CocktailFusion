@@ -1,0 +1,50 @@
+<div class="views">
+  <div class="project-toolbar">
+    <div class="tabs">
+      <a href="{{corpora_path}}" class="tab"> Corpus proposés </a>
+      <a data-turbo-frame="hashtags-filters" href="#" class="tab"
+        >Rechercher par mot-clefs</a
+      >
+      <a href="{{topk_path}}" class="tab active">Les plus populaires</a>
+    </div>
+  </div>
+  <div class="view-col">
+    <form action="{{topk_path}}" method="GET">
+      <p>
+        Hashtags les plus populaires, sur 30 jours glissants jusqu'au&nbsp;
+        <input name="end_date" type="date" value="{{end_date.format("%F")}}"
+        min="{{daily_range.start.format("%F")}}"
+        max="{{daily_range.end.format("%F")}}" />
+      </p>
+      <div class="loader-submit">
+        <button type="submit">Envoyer</button>
+        {% include "../_includes/_loader.html" %}
+      </div>
+    </form>
+    <div class="newProject">
+      <div class="newProject-content">
+        <div class="newProject-table__table">
+          <table>
+            <thead>
+              <tr>
+                <th>Hashtag</th>
+                <th>Fréquence</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hashtag in hashtags %}
+              <tr>
+                <td>{{hashtag.hashtag}}</td>
+                <td>{{hashtag.count}}</td>
+                <td>{% include "../_includes/_hashtag_toggle_form.html" %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% include "../_includes/_cart.html" %}
+    </div>
+  </div>
+</div>

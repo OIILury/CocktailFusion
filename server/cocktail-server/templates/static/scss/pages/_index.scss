@@ -1,0 +1,252 @@
+.accueil-top {
+  position: relative;
+  padding: 2rem 3rem;
+  color: #fff;
+  background: url(../img/banner.jpg) no-repeat top / cover;
+  z-index: 1;
+
+  &::before {
+    content: "";
+    display: block;
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    top: -30px;
+    right: 33%;
+    background: url(../img/twitter.svg) no-repeat top / contain;
+  }
+}
+
+.accueil-top__title {
+  font-size: 1.5rem;
+  align-items: center;
+  font-weight: bold;
+}
+
+.accueil-top__container {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 2rem;
+}
+
+.accueil-top__container__left {
+  text-align: center;
+  line-height: 2;
+}
+
+.accueil-bot {
+  flex: 1;
+  position: relative;
+  padding-top: 7rem;
+  text-align: center;
+  font-weight: 600;
+  background: url(../img/accueil-motif.png) no-repeat top / cover;
+  // background: url(../img/motif.svg) repeat left top;
+  z-index: 0;
+
+  &::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: transparent
+      linear-gradient(180deg, #ffffff 0%, #ffffffd9 59%, #ffffffed 100%) 0 0
+      no-repeat;
+    z-index: -1;
+  }
+}
+
+.accueil-bot__title {
+  font-size: 2rem;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 0.4em;
+  .tricky {
+    padding-bottom: 0.8rem;
+  }
+}
+
+.accueil-bot__studies {
+  position: relative;
+  display: inline-flex;
+  // align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 70px;
+  font-size: 1.25rem;
+
+  img {
+    margin: 0.25rem;
+  }
+
+  &::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 75px;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background: url(../img/arrow-1.svg) no-repeat left center / contain;
+  }
+}
+
+.accueil-bot__studie {
+  display: flex;
+  align-items: center;
+}
+
+.picto-studie {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 1rem;
+  align-items: center;
+  .picto-studie__bulle--infos {
+    position: relative;
+    visibility: hidden;
+    border: 1px solid $noir;
+    border-radius: 20px;
+    width: 12rem;
+    padding: 2rem;
+    margin: auto;
+    &::before {
+      content: "\201C";
+      position: absolute;
+      font-size: 4rem;
+      top: 0.2rem;
+      left: 0.2rem;
+    }
+    &::after {
+      content: "\201D";
+      position: absolute;
+      font-size: 4rem;
+      bottom: -38px;
+      right: 4px;
+    }
+  }
+
+  > [class*="icon-"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $orange3;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    margin: 0.25rem;
+    font-size: 1.5rem;
+    color: $orange;
+    transition: 0.25s;
+
+    .accueil-bot__studies__list & {
+      width: 70px;
+      height: 70px;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+  }
+
+  &--highlithed,
+  &--selected {
+    > [class*="icon-"] {
+      background-color: $orange;
+      color: $blanc;
+    }
+  }
+
+  &--selected {
+    .picto-studie__bulle--infos {
+      visibility: visible;
+    }
+  }
+}
+
+.accueil-bot__studies__container {
+  display: flex;
+  padding: 1rem 3rem;
+  text-align: left;
+}
+
+.accueil-bot__studies__title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.accueil-bot__studies__select {
+  text-align: center;
+}
+
+.accueil-bot__studies__list {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.accueil-bot__studies__view {
+  flex: 1;
+}
+
+.accueil-footer {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 3rem;
+  padding: 1rem 3rem;
+  background-color: $blanc3;
+
+  img {
+    max-height: 55px;
+    margin: auto;
+  }
+
+  .slick-slide img {
+    max-height: 100px;
+  }
+
+  .slick-arrow::before {
+    font-size: 8px;
+  }
+}
+
+.accueil-bot__studies__container {
+  gap: 3rem;
+
+  .tweets {
+    column-count: 3;
+    column-gap: 1rem;
+    max-width: 100%;
+    display: block;
+  }
+
+  .tweet-info {
+    display: block;
+    position: relative;
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .accueil-top {
+    background-position: left center;
+  }
+
+  .accueil-top__container {
+    flex-direction: column-reverse;
+  }
+
+  .accueil-bot__studies {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 960px) {
+  .accueil-top__container__left {
+    flex-direction: column;
+  }
+}

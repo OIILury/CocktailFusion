@@ -1,0 +1,9 @@
+<form action="{{cooccurence_toggle_path}}" method="post" id="{{cooccurence.label}}" class="visibility-form">
+  <input type="hidden" name="label" value="{{cooccurence.label}}" />
+  <input type="hidden" name="hidden" value="{{!cooccurence.hidden}}" />
+  <input type="hidden" name="hashtag" value="{{cooccurence.label}}" />
+  <button class="button--visibility" type="submit"
+    @click="$dispatch('hashtag-visibility-toggled', {hashtag: '{{cooccurence.label}}', hidden: {{ !cooccurence.hidden }}});">
+    <span class="{% if cooccurence.hidden %} icon-eye-hidden {% else %} icon-eye {% endif %} "></span>
+  </button>
+</form>

@@ -1,0 +1,43 @@
+<turbo-stream action="after" target="main-site">
+  <template>
+    <div x-data>
+      <div class="mask">
+        <div class="popup popup-preview" @keyup.escape.window="$root.remove()" @click.outside="$root.remove()">
+          <header class="popup-header">
+            <h1 class="popup-title">Aperçu rapide des tweets ({{ count|num_format }})</h1>
+            <a href="#" @click="$root.remove()">
+              <button type="button" class="popup-header__close">
+                <span class="icon-cross"></span>
+              </button>
+            </a>
+          </header>
+          <main class="popup-main">
+
+            <div class="tweets-list">
+              <div class="list-tweet">
+                <div class="tweets analyse">
+                  <turbo-frame id="tweets-list">
+                    <div class="tweets analyse">
+                      {% for tweet in tweets %}
+                      <span class="tweet-info" data-tweeet-id="{{ tweet.id }}">
+                        <div class="retweet-container" style="display: none;">
+                          {{ tweet.retweet_count }} retweet{% if tweet.retweet_count > 1 %}s{% endif %}
+                        </div>
+                        <div class="tweet-erreur" style="display: none;">
+                          Impossible d'afficher le tweet
+                        </div>
+                      </span>
+                      {% else %}
+                      <div class="views">Aucun résultat</div>
+                      {% endfor %}
+                    </div>
+                  </turbo-frame>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </template>
+</turbo-stream>

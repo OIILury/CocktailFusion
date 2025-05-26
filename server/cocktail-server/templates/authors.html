@@ -1,0 +1,106 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Résultats - Auteurs{% endblock %}
+
+{% block content %}
+{% let active_page = "authors" %}
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères de collecte</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        
+        {% include "_panel_criteria.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+      </aside>
+
+      <div class="views authors">
+        <div class="view-col">
+          <div class="page-title">
+            <h2 class="title title--grey">Auteurs des tweets de votre étude :</h2>
+          </div>
+          <div class="view-row">
+            <div class="tabs">
+              <a class='button tab {% if tab == "total" %} active {% endif %}' href="{{ authors_path }}">Les plus
+                prolifiques <span class="icon-questioning" title="Auteurs qui publient le plus"></span></a>
+              <a class='button tab {% if tab == "retweets" %} active {% endif %}' href="{{ authors_path }}/retweets">Les
+                plus retweetés</a>
+              <a class='button tab {% if tab == "citations" %} active {% endif %}'
+                href="{{ authors_path }}/citations">Les plus cités</a>
+              <a class='button tab {% if tab == "repondus" %} active {% endif %}' href="{{ authors_path }}/repondus">Les
+                plus répondus</a>
+            </div>
+          </div>
+          <turbo-frame id="authors-list">
+            <div class="tweets-lines">
+              {% for author_count in author_counts %}
+              <div class="tweet-line">
+                <div class="tweet__identity">
+                  <div class="tweet__name">{{ author_count.author.user_name }}</div>
+                  <div class="tweet__at">@{{author_count.author.user_screen_name }}</div>
+                </div>
+                <div class="tweet__followers">
+                  <span class="tweet__followers__nb">{{ author_count.count }}</span> {% if tab == "retweets" %}retweet{%
+                  elseif tab == "citations" %}citation{% elseif tab == "repondus" %}réponse{% else %}tweet{% endif %}{%
+                  if author_count.count > 1 %}s{% endif %}
+                </div>
+                <div class="tweet__link">
+                  <a href="{{ results_path }}?auteur={{ author_count.author.user_screen_name }}" target="_top">
+                    <span class="icon-twitter"></span>
+                    <span>voir tous les tweets</span>
+                  </a>
+                </div>
+                <div class="tweet__profil">
+                  <a href="https://twitter.com/{{ author_count.author.user_screen_name  }}" target="_blank">
+                    <span class="icon-twitterT"></span>
+                    <span>voir sur le profil Twitter</span>
+                  </a>
+                </div>
+              </div>
+              {% else %}
+              <div class="views">Aucun résultat</div>
+              {% endfor %}
+              <div class="pagination">
+                {% if page > 1 %}
+                <a href="{{ authors_path }}/{{tab}}?page={{page - 1}}" rel="previous" data-turbo-action="restore">Page
+                  précédente</a>
+                {%endif%}
+                {{ page }}
+                {% if author_counts.len() == 10 %}
+                <a href="{{ authors_path }}/{{tab}}?page={{page + 1}}" rel="next" data-turbo-action="advance">Page
+                  suivante</a>
+                {% endif %}
+              </div>
+            </div>
+          </turbo-frame>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+</body>
+
+</html>
+{% endblock %}

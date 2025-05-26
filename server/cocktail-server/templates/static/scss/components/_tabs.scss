@@ -1,0 +1,47 @@
+.tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: baseline;
+  gap: 0.5rem;
+  background-color: $blanc2;
+  border-radius: 1.25rem;
+
+  .tab {
+    height: 100%;
+    padding: 0.75rem 1rem;
+    background-color: transparent;
+    color: $noir;
+    border: 0;
+
+    &.active {
+      background-color: $noir;
+      color: $blanc;
+    }
+
+    &:hover:not(.active) {
+      background-color: $gris;
+    }
+  }
+}
+
+.tabs--flat {
+  background-color: transparent;
+
+  .tab {
+    background-color: transparent;
+    border-bottom: 3px solid $gris;
+    border-radius: 0;
+
+    &.active {
+      color: $rouge;
+      border-color: $rouge;
+      background-color: transparent;
+    }
+
+    &:hover:not(.active) {
+      background-color: transparent;
+      border-color: $gris3;
+    }
+  }
+}
+

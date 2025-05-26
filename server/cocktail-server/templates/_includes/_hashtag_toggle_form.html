@@ -1,0 +1,19 @@
+<div id="toggle-{{hashtag.name}}" class="{% if !hashtag.available %} selected {% else %} notSelected {% endif %}">
+  <form style="display: none;" action="{{ include_basket_path }}" method="post" id="toggle-{{hashtag.name}}-form">
+    <input type="hidden" name="item_id" value="{{hashtag.name}}" />
+    <input type="hidden" name="kind" value="{% if !hashtag.available -%} remove {%- else -%} add {%- endif %}" />
+    <input type="hidden" name="count" value="{{hashtag.count}}" />
+    <input type="hidden" name="available" value="{{hashtag.available}}" />
+    {% if block_id.is_some() %}
+    <input type="hidden" name="block_id" value="{{block_id.unwrap()}}" />
+    {% endif %}
+  </form>
+  <!-- prettier-ignore -->
+  <button form="toggle-{{hashtag.name}}-form" type="submit" class="button--text" title="Ajouter à ma sélection">
+    {% if !hashtag.available %}
+    <span class="icon-poubelle-x">Retirer de ma sélection</span>
+    {% else %}
+    <span class="icon-plus">Ajouter à ma sélection</span>
+    {% endif %}
+  </button>
+</div>

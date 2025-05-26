@@ -1,0 +1,17 @@
+serve profile="dev":
+  cargo run --profile {{profile}}
+
+build-css: 
+  npm run sass:build
+
+npm:
+  npm install
+
+check:
+  cargo check
+
+static:
+  npm run server:serve
+
+spec:
+  cargo spec watch

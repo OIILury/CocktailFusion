@@ -1,0 +1,30 @@
+<div class="views">
+  <div class="project-toolbar">
+    <div class="tabs">
+      <a href="{{corpora_path}}" class="tab active"> Corpus proposés </a>
+      <a href="#" class="tab">Rechercher par mot-clefs</a>
+      <a href="{{topk_path}}" class="tab">Les plus populaires</a>
+    </div>
+  </div>
+  <div class="view-col">
+    <div class="ariane-second">
+      <div class="ariane-second__item"><a href="#">Dashboard</a></div>
+      <div class="ariane-second__item">
+        <a href="#">Sélectionnez vos Hastags</a>
+      </div>
+    </div>
+
+    <div class="newProject">
+      <div class="newProject-content">
+        <div class="newProject-hashtags">
+          <!-- prettier-ignore -->
+          {% for corpus in corpora.iter() %}
+          {% include "../_includes/_corpus_button_block.html" %}
+          {% endfor %}
+        </div>
+      </div>
+
+      {% include "../_includes/_cart.html" %}
+    </div>
+  </div>
+</div>

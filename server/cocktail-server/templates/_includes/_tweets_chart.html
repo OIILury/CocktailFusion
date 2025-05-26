@@ -1,0 +1,55 @@
+<div class="views">
+  <div class="view-col">
+    <div class="page-title page-title--space">
+      <h2 class="title title--grey">Fréquence de tweets par jour de votre étude :</h2>
+      <div class="view-row">
+        <div class="frequency-filter periodicity">
+          <label>
+            <span>Afficher par :</span>
+            <select name="periodicite" id="displayBy" onChange="update_periodicity_tweets()">
+              <option value="jour" selected>Jour</option>
+              <option value="semaine">Semaine</option>
+              <option value="mois">Mois</option>
+              <option value="annee">Année</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <div class="view-row" style="flex: 1">
+        <div class="tabs" style="align-self: center;">
+          <a href='{{ tweets_graph_path }}/total/{{ aside_tweet_tab }}{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+            class='button tab {% if tab == "total" %} active {% endif %}'>Total</a>
+          {% if niveau == 2 %}
+          <a href='{{ tweets_graph_path }}/retweets/{{ aside_tweet_tab }}{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+            class='tab button {% if tab == "retweets" %} active {% endif %}'>Les plus retweetés</a>
+          <a href='{{ tweets_graph_path }}/citations/{{ aside_tweet_tab }}{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+            class='tab button {% if tab == "citations" %} active {% endif %}'>Les plus cités</a>
+          <a href='{{ tweets_graph_path }}/repondus/{{ aside_tweet_tab }}{% if selected_author != "" %}?auteur={{ selected_author }}{% endif %}'
+            class='tab button {% if tab == "repondus" %} active {% endif %}'>Les plus répondus</a>
+          {% else %}
+          <a href='#' class='tab button disabled lock'>Les plus retweetés<span class="icon-lock"></span></a>
+          <a href='#' class='tab button disabled lock'>Les plus cités<span class="icon-lock"></span></a>
+          <a href='#' class='tab button disabled lock'>Les plus répondus<span class="icon-lock"></span></a>
+          {% endif %}
+        </div>
+        <div class="frequency-filter frequency-filter--user">
+          <turbo-frame id="authors-select" src="{{ authors_select_path }}?auteur={{ selected_author }}">
+            <label>
+              <span>pour l'utilisateur :</span>
+              <select disabled>
+                <option value="">
+                </option>
+              </select>
+            </label>
+          </turbo-frame>
+        </div>
+      </div>
+    </div>
+    <canvas x-data='tweetsChartPremium({{tweets_chart|json|safe}})' data-json='{{tweets_chart|json|safe}}'
+      id="tweets-chart-premium" data-label='Nombre de {% if tab == "retweets" %}retweets{%
+      elseif tab == "citations" %}citations{% elseif tab == "repondus" %}réponses{% else %}tweets{% endif %}'
+      data-result-path="{{ results_path }}"></canvas>
+  </div>
+</div>

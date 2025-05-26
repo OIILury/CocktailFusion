@@ -1,0 +1,11 @@
+[Unit]
+Description=Cocktail Web Application
+
+[Service]
+User=www-data
+Group=www-data
+EnvironmentFile=/usr/local/lib/cocktail/etc/cocktail-server.conf
+ExecStart=/usr/local/bin/cocktail serve
+
+[Install]
+WantedBy=multi-user.target

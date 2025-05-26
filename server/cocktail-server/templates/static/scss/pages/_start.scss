@@ -1,0 +1,115 @@
+.page-start {
+  .main-site {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .section-start {
+    background: $orange;
+    background: linear-gradient(90deg, $rouge 0%, $orange 100%);
+  }
+}
+.studieCard-new {
+  display: flex;
+  min-height: 80px;
+  a {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    border: 2px solid transparent;
+    border-radius: 0.5rem;
+    background-color: $noir;
+    color: $blanc;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.25s;
+    &:hover {
+      background-color: $rouge;
+      border-color: $blanc;
+    }
+  }
+  [class*="icon-"] {
+    font-size: 1.5rem;
+  }
+}
+.studieCard-new__text {
+  font-size: rem(16);
+  text-align: center;
+}
+.section-start {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 3rem 6rem;
+  [type="search"] {
+    width: 100%;
+    max-width: 500px;
+  }
+}
+.lasts-projetcs__title {
+  color: $blanc;
+  font-size: 1.25rem;
+}
+.lasts-projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 1.5rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+.newProject {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+.project-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  background-color: $blanc;
+  border-radius: 0.5rem;
+}
+.project-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  flex: 1 0 100%;
+  color: $gris3;
+  gap: 0.25rem;
+}
+.project-card__left {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: $gris3;
+  > .project-card__title {
+    flex: 1 0 100%;
+  }
+}
+.project-card__right {
+  .button {
+    background-color: $rouge;
+    color: $blanc;
+    transition: 0.25s;
+  }
+}
+.project-card__title {
+  color: $orange;
+  font-size: 1.5rem;
+}
+.project-card__edited {
+  font-style: italic;
+}
+.howThatWorks {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 3rem;
+  background-color: $blanc;
+}

@@ -1,0 +1,8 @@
+<form action="{{all_toggle_path}}" method="post" class="visibility-form">
+  <input type="hidden" name="hidden" value="{{!hidden}}" />
+  <input type="hidden" name="superpose" value="{{superpose}}" />
+  <button class="button--visibility" type="submit" @click="$dispatch('all-visibility-toggled', {hidden: {{!hidden}}})">
+
+    {% if hidden %} <h3 class="subtitle">Tout afficher</h3> {% else %} <h3 class="subtitle">Tout cacher</h3> {% endif %}
+  </button>
+</form>

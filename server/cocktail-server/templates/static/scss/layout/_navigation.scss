@@ -1,0 +1,10 @@
+.menu__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 3rem;
+}
+
+.menu__item {
+  font-weight: 600;
+  cursor: pointer;
+}

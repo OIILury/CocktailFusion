@@ -1,0 +1,90 @@
+<aside class="aside-graphique" id="aside-hashtags-chart">
+  <div class="aside-graphique__top" x-data>
+    <h3 class="subtitle">#hashtags</h3>
+    {% include "_includes/_toggle_all_visibility.html" %}
+  </div>
+  <div class="legend-graph">
+    <div class="tabs">
+      <a href='{{ result_hashtags_path }}/{{ tab }}/project{% if superpose %}?superpose=true{% endif %}'
+        class='button tab {% if aside_hashtag_tab == "project" %} active {% endif %}'>sélectionnés</a>
+      <a href='{{ result_hashtags_path }}/{{ tab }}/top{% if superpose %}?superpose=true{% endif %}'
+        class='tab button {% if aside_hashtag_tab == "top" %} active {% endif %}'>top</a>
+      <a href='{{ result_hashtags_path }}/{{ tab }}/cooccurence{% if superpose %}?superpose=true{% endif %}'
+        class='tab button {% if aside_hashtag_tab == "cooccurence" %} active {% endif %}'>cooccurence</a>
+    </div>
+    <label>
+      <input type="checkbox" id="superpose-input" value="true" {% if superpose %}checked{% endif %}
+        onChange="window.location.replace('{{ result_hashtags_path }}/{{ tab }}/{{ aside_hashtag_tab }}?superpose=' + document.getElementById('superpose-input').checked);" />
+      Superposé
+    </label>
+  </div>
+  <div class="aside-graphique-legend">
+    {% if aside_hashtag_tab == "project" %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for frequence in frequences %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <div id="frequence-{{frequence.hashtag}}"></div>
+          </td>
+        </tr>
+        <turbo-stream action="replace" target="frequence-{{frequence.hashtag}}">
+          <template>
+            {% include "_includes/_toggle_hashtag_visibility.html" %}
+          </template>
+        </turbo-stream>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else if aside_hashtag_tab == "top" %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for frequence in frequences_topk %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{frequence.hashtag}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{frequence.hashtag}}">{{frequence.hashtag}}</span>
+          </td>
+          <td>
+            <div id="frequence-{{frequence.hashtag}}"></div>
+          </td>
+        </tr>
+        <turbo-stream action="replace" target="frequence-{{frequence.hashtag}}">
+          <template>
+            {% include "_includes/_toggle_hashtag_visibility.html" %}
+          </template>
+        </turbo-stream>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <table class="aside-graphique-legend__table">
+      <tbody>
+        <!-- prettier-ignore -->
+        {% for cooccurence in frequences_cooccurence %}
+        <tr>
+          <td>
+            <span x-data class="icon-hashtag" :style="{color: uniqolor('{{cooccurence.label}}').color}"></span>
+            <span style="text-overflow: ellipsis" title="{{cooccurence.label}}">{{cooccurence.label}}</span>
+          </td>
+          <td>
+            <div id="{{cooccurence.label}}"></div>
+          </td>
+        </tr>
+        <turbo-stream action="replace" target="{{cooccurence.label}}">
+          <template>
+            {% include "_includes/_toggle_cooccurence_visibility.html" %}
+          </template>
+        </turbo-stream>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</aside>

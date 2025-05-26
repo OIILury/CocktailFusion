@@ -1,0 +1,44 @@
+.frequency-filter {
+  label {
+    flex-direction: row;
+    align-items: center;
+
+    span {
+      text-transform: none;
+      &.result {
+        padding: 0.75rem;
+      }
+    }
+  }
+}
+
+.frequency-filter--user {
+  flex: 1;
+
+  select {
+    width: min(100%, 400px);
+  }
+}
+
+/*IN*/
+.page-frequency--in {
+  .frequency-top {
+    justify-content: flex-start;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .icon-chevron {
+      display: inline-flex;
+      align-items: center;
+
+      &::before {
+        transform: rotate(180deg);
+        font-size: 0.7rem;
+      }
+    }
+  }
+}

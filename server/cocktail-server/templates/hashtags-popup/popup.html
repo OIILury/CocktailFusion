@@ -1,0 +1,65 @@
+<turbo-stream action="after" target="main-site">
+  <template>
+    {% let color %}
+    {% if block_id.is_some() && block_id.unwrap() == -1 %}
+    {% let color = "red" %}
+    {% else %}
+    {% let color = "green" %}
+    {% endif %}
+    <div x-data>
+      <div class="mask">
+        <div class="popup popup-hashtags popup-hashtags--search" @keyup.escape.window="$root.remove()"
+            @click.outside="$root.remove()">
+          <header class="popup-header">
+            <h1 class="popup-title popup-title--{{color}}">Hashtags recherchés :</h1>
+            <div class="tabs" x-data="{ tab: 'topk' }">
+              <a href="{{ popup_hashtags_topk_path}}?exclude={{ exclude_popup_style }}{% if block_id.is_some() %}&block_id={{ block_id.unwrap() }}{% endif %}" data-turbo-frame="popup-main"
+                class="button--tab tab" :class="tab === 'topk' ? 'active' : ''" @click="tab = 'topk'">
+                # les plus utilisés
+              </a>
+              <a href="{{ popup_hashtags_search_path }}?exclude={{ exclude_popup_style }}{% if block_id.is_some() %}&block_id={{ block_id.unwrap() }}{% endif %}" data-turbo-frame="popup-main"
+                class="button--tab tab" :class="tab === 'search' ? 'active' : ''" @click="tab = 'search'">
+                Rechercher
+              </a>
+            </div>
+            {% if block_id.is_none() %}
+            <button type="button" class="popup-header__close" @click="$root.remove()">
+              <span class="icon-cross"></span>
+            </button>
+            <!-- <a class="button--green" href="{{ request_path }}" @click="$root.remove();" >J'ai terminé</a> -->
+            {% else %}
+            <form style="display: none;" action="{{ request_path }}" method="post" id="form-hashtags-submit"></form>
+            <button type="button" class="popup-header__close" @click="
+              document.getElementById('form-hashtags-submit').requestSubmit();
+              $root.remove();">
+              <span class="icon-cross"></span>
+            </button>
+            {% endif %}
+          </header>
+
+          <turbo-frame id="popup-main" src="{{ popup_hashtags_topk_path }}?exclude={{ exclude_popup_style }}{% if block_id.is_some() %}&block_id={{ block_id.unwrap() }}{% endif %}">
+          </turbo-frame>
+
+          <footer class="popup-footer popup-footer--{{color}}">
+            {% if block_id.is_none() %}
+            <span id="hashtag-count" class="hastags-selected-number">{{ hashtag_count }}</span>
+            <span>#hastags sélectionnées</span>
+            {% endif %}
+
+            {% if block_id.is_none() %}
+            <button type="submit" class="button--green" @click="$root.remove()">J'ai terminé</button>
+            {% else %}
+            <form style="display: none;" action="{{ request_path }}" method="post" id="form-hashtags-submit"></form>
+            <button type="submit" class="button--{{color}}" @click="
+                document.getElementById('form-hashtags-submit').requestSubmit();$root.remove();"
+                style="margin-left: auto;"
+                >J'ai terminé
+            </button>
+            {% endif %}
+
+          </footer>
+        </div>
+      </div>
+    </div>
+  </template>
+</turbo-stream>

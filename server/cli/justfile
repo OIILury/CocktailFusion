@@ -1,0 +1,18 @@
+set dotenv-load
+alias s := serve
+alias b := build
+mode :="dev"
+target := if "dev" == mode { "debug" } else { "release" }
+
+serve:
+	../target/{{target}}/cocktail serve
+build:
+  SQLX_OFFLINE=true cargo build --profile {{mode}} --bin cocktail
+
+index-create:
+  ../target/{{mode}}/cocktail index create
+index-ingest:
+  gunzip -c ~/Clients/UB/Cocktail/Ressources/tweet_with_metrics.json.gz | head -1000000 | ../target/release/cocktail index ingest
+
+search:
+  ../target/release/cocktail index search

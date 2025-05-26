@@ -1,0 +1,10 @@
+<form action="/projets/:project_id/basket" method="post" id="toggle-{{corpus.corpus_id}}">
+  <input type="hidden" name="item_id" value="{{corpus.corpus_id}}" />
+  <input type="hidden" name="kind" value="Corpus" />
+  <input type="hidden" name="available" value="{{corpus.available}}" />
+  <!-- prettier-ignore -->
+  <b>TODO: form action à changer</b>
+  <button type="submit" title="Ajouter à ma sélection" {% if corpus.available %} disabled {% endif %}>
+    <span class="icon-cart-add"></span>
+  </button>
+</form>

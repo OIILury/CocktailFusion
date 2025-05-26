@@ -1,0 +1,10 @@
+.footer-site {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2rem;
+  padding: 0.5rem;
+  background-color: $noir;
+  color: $gris2;
+  font-size: 0.8rem;
+}

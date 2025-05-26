@@ -1,0 +1,356 @@
+button,
+.button,
+[class*="button--"] {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 1.25rem;
+  background-color: $rouge;
+  color: $blanc;
+  line-height: inherit;
+  font-family: $mainFont;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 0.25s;
+
+  &:hover {
+    background-color: $rouge;
+  }
+}
+
+.button--visibility {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 1.25rem;
+  background-color: $gris6;
+  color: $gris5;
+  line-height: inherit;
+  font-family: $mainFont;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s;
+
+  &:hover {
+    background-color: $gris6;
+  }
+}
+
+.button--squared {
+  background-color: $blanc3;
+  color: $noir;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+
+  &:hover {
+    background-color: $noir;
+    color: #fff;
+  }
+}
+
+.button--text {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+
+  &:hover {
+    background-color: inherit;
+  }
+}
+
+.button--border {
+  background-color: transparent;
+  color: $rouge;
+  border: 2px solid $rouge;
+  border-radius: 1.5rem;
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &:hover {
+    color: $blanc;
+    background-color: $rouge;
+    border-color: $rouge;
+  }
+
+  .header__bot & {
+    border-color: $blanc;
+    color: $blanc;
+
+    &:hover {
+      color: $rouge;
+      background-color: #fff;
+    }
+  }
+}
+
+.button--green {
+  background-color: $vert2;
+  color: #fff;
+
+  &:hover {
+    background-color: darken($color: $vert2, $amount: 10%);
+  }
+}
+
+.button--red {
+  background-color: $rouge;
+  color: #fff;
+
+  &:hover {
+    background-color: darken($color: $rouge, $amount: 10%);
+  }
+}
+
+.button--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-center {
+  margin: 1rem auto;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.buttons--spaceBetween {
+  justify-content: space-between;
+}
+
+.cancel {
+  background-color: transparent;
+  color: $noir;
+  border: 1px solid $noir;
+
+  &:hover {
+    background-color: transparent;
+    border-color: $rouge;
+  }
+}
+
+/* SWITCH */
+.switch {
+  position: relative;
+  min-height: 25px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-transform: none;
+  font-weight: 600;
+
+  .labelText {
+    margin-left: 40px;
+    cursor: pointer;
+  }
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  width: 40px;
+  height: 25px;
+  position: absolute;
+  cursor: pointer;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  background-color: #ccc;
+  transition: 0.4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 17px;
+  width: 17px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: $rouge;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px $rouge;
+}
+
+input:checked + .slider::before {
+  transform: translateX(15px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round::before {
+  border-radius: 50%;
+}
+
+/* Slider AND/OR */
+.slider-AND-OR {
+  width: 50px;
+  height: 25px;
+  position: absolute;
+  cursor: pointer;
+  right: 0;
+  background-color: $noir;
+  transition: 0.4s;
+
+  border-radius: 34px;
+}
+
+.slider-AND-OR:after {
+  position: absolute;
+  content: "ET";
+  font-size: 0.9rem;
+  height: 17px;
+  width: 17px;
+  left: 9px;
+  bottom: 2px;
+  color: $blanc;
+
+  border-radius: 50%;
+}
+
+.slider-AND-OR:before {
+  position: absolute;
+  content: "";
+  height: 17px;
+  width: 17px;
+  right: 4px;
+  bottom: 4px;
+  background-color: $blanc;
+  border-radius: 50%;
+}
+
+input:checked + .slider-AND-OR::after {
+  content: "OU";
+  transform: translateX(16px);
+}
+
+input:checked + .slider-AND-OR::before {
+  transform: translateX(-25px);
+}
+
+/* Slider vide */
+.slider-empty {
+  width: 50px;
+  height: 22px;
+  position: absolute;
+  cursor: pointer;
+  right: 0;
+  background-color: $blanc;
+  transition: 0.4s;
+  border: 1px solid $noir;
+  border-radius: 34px;
+}
+
+.slider-empty:before {
+  position: absolute;
+  content: "";
+  height: 17px;
+  width: 17px;
+  right: 30%;
+  bottom: 2px;
+  background-color: $noir;
+
+  border-radius: 50%;
+}
+
+/* CHECKBOX */
+.checkboxCustom {
+  display: block;
+  position: relative;
+  padding-left: 30px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: 22px;
+  user-select: none;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+
+    &:focus {
+      + .checkmark {
+        box-shadow: 0 0 3px $gris3;
+      }
+    }
+  }
+}
+
+/* Create a custom checkbox */
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 16px;
+  width: 16px;
+  border-radius: 0.25rem;
+  background-color: #eee;
+}
+
+/* On mouse-over, add a grey background color */
+.checkboxCustom:hover input ~ .checkmark {
+  background-color: #ccc;
+}
+
+/* When the checkbox is checked, add a blue background */
+.checkboxCustom input:checked ~ .checkmark {
+  background-color: $rouge;
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+/* Show the checkmark when checked */
+.checkboxCustom input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Style the checkmark/indicator */
+.checkboxCustom .checkmark:after {
+  left: 37%;
+  top: 20%;
+  width: 20%;
+  height: 40%;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+/* CHECKBOX FIN*/

@@ -1,0 +1,127 @@
+    <div class="page-parent">
+    <div class="sigma-parent">
+      <h3 class="chart-title">Fréquence d'apparition des hashtags de votre étude :</h3>
+      <div class="sigma-expand"> <canvas
+        x-data='hashtagChart({{frequences}})'
+        @hashtag-visibility-toggled.window="toggleSerie($event.detail)"
+        @all-visibility-toggled.window="toggleAll($event.detail)"
+        id="hashtags-chart-logout"></canvas></div>
+    </div>
+    <div id="attributepane">
+      <div class="header-pane">
+          <h3 class="title title--grey aside-graphique__title">Légende</h3>          
+        </div>
+        <div class="aside-graphique-legend">
+          <table>
+            <thead>
+              <tr>
+                <th style="font-weight: bold; padding-bottom: 10px;">Hashtags</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- prettier-ignore -->
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('agriculture').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    :style="{color: uniqolor('agriculture').color}"
+                    title="agriculture"
+                    >agriculture
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('futureofcap').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="futureofcap"
+                    >futureofcap
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('alimentation').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="alimentation"
+                    >alimentation
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('goodfoodgoodfarming').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="goodfoodgoodfarming"
+                    >goodfoodgoodfarming
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('pouruneautrepac').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="pouruneautrepac"
+                    >pouruneautrepac
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('biodiversité').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="biodiversité"
+                    >biodiversité
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span
+                    x-data
+                    class="icon-hashtag"
+                    :style="{color: uniqolor('europe').color}"></span>
+                  <span
+                    style="text-overflow: ellipsis"
+                    title="europe"
+                    >europe
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+    </div>
+      
+    </div>
+  </div>
+
+
+    <div id="zoom">
+      <div class="z" rel="in"></div>
+      <div class="z" rel="out"></div>
+      <div class="z" rel="center"></div>
+    </div>

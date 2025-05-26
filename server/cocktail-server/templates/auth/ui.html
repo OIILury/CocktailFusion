@@ -1,0 +1,5 @@
+<form action="{{data.ui.action}}" method="{{data.ui.method}}" class="connection-form">
+	<h2 class="connection-form__title">{{ title }}</h2>
+	{{> messages.html messages=data.ui.messages }}
+	{{> ui_nodes.html nodes=data.ui.nodes only }}
+</form>

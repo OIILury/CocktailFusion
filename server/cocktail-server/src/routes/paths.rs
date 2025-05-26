@@ -286,21 +286,3 @@ pub struct ProjectImport {
 pub struct ProjectCollect {
     pub project_id: Uuid,
 }
-
-#[derive(Debug, Deserialize, TypedPath)]
-#[typed_path("/projets/:project_id/collect/start")]
-pub struct StartCollection {
-    pub project_id: Uuid,
-}
-
-#[derive(Debug, Deserialize, TypedPath)]
-#[typed_path("/projets/:project_id/collect/delete")]
-pub struct DeleteCollection {
-    pub project_id: Uuid,
-}
-
-#[derive(Debug, Deserialize, TypedPath)]
-#[typed_path("/projets/:project_id/collect/update")]
-pub struct UpdateCollection {
-    pub project_id: Uuid,
-}

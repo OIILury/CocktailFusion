@@ -45,18 +45,108 @@ function loadTweets() {
 
   for (i = 0; i < tweets.length; i++) {
     var id = tweets[i].getAttribute("data-tweeet-id");
+    var source = tweets[i].getAttribute("data-tweet-source");
     const j = i;
 
-    twttr.widgets.createTweet(id, tweets[i]).then((res) => {
-      if (res) {
-        tweets[j].getElementsByClassName("retweet-container")[0].style.display =
-          "flex";
-      } else {
-        tweets[j].getElementsByClassName("tweet-erreur")[0].style.display =
-          "block";
-      }
-    });
+    if (source === "Bluesky") {
+      // Pour les tweets Bluesky, créer un affichage personnalisé
+      createBlueskyTweet(tweets[j]);
+    } else {
+      // Pour les tweets Twitter, utiliser l'API Twitter
+      twttr.widgets.createTweet(id, tweets[i]).then((res) => {
+        if (res) {
+          tweets[j].getElementsByClassName("retweet-container")[0].style.display =
+            "flex";
+        } else {
+          tweets[j].getElementsByClassName("tweet-erreur")[0].style.display =
+            "block";
+        }
+      });
+    }
   }
+}
+
+function createBlueskyTweet(tweetElement) {
+  const id = tweetElement.getAttribute("data-tweeet-id");
+  const text = tweetElement.getAttribute("data-tweet-text");
+  const author = tweetElement.getAttribute("data-tweet-author");
+  const authorName = tweetElement.getAttribute("data-tweet-author-name");
+  const date = tweetElement.getAttribute("data-tweet-date");
+  
+  // Sauvegarder le contenu existant (conteneur de retweet, etc.)
+  const existingContent = tweetElement.innerHTML;
+  
+  // Créer l'HTML personnalisé pour le tweet Bluesky
+  const tweetHTML = `
+    <div class="bluesky-tweet">
+      <div class="bluesky-tweet-header">
+        <div class="bluesky-tweet-author">
+          <div class="bluesky-tweet-author-name">${escapeHtml(authorName || author)}</div>
+          <div class="bluesky-tweet-author-handle">@${escapeHtml(author)}</div>
+          <div class="bluesky-tweet-date">${formatDate(date)}</div>
+        </div>
+        <div class="bluesky-tweet-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#1185fe">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="bluesky-tweet-content">
+        ${formatTweetText(text)}
+      </div>
+      <div class="bluesky-tweet-footer">
+        <a href="https://bsky.app/profile/${escapeHtml(author)}/post/${escapeHtml(id.split('/').pop())}" target="_blank" class="bluesky-tweet-link">
+          Voir sur Bluesky
+        </a>
+      </div>
+    </div>
+  `;
+  
+  // Ajouter le tweet Bluesky après le contenu existant
+  tweetElement.innerHTML = existingContent + tweetHTML;
+  
+  // Afficher le conteneur de retweet s'il existe
+  const retweetContainer = tweetElement.getElementsByClassName("retweet-container")[0];
+  if (retweetContainer) {
+    retweetContainer.style.display = "flex";
+  }
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return dateString;
+  }
+}
+
+function formatTweetText(text) {
+  if (!text) return '';
+  
+  // Remplacer les URLs par des liens
+  text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  
+  // Remplacer les hashtags
+  text = text.replace(/#(\w+)/g, '<span class="hashtag">#$1</span>');
+  
+  // Remplacer les mentions
+  text = text.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+  
+  return text;
 }
 
 let renderer;

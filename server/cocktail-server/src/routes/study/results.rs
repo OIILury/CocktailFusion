@@ -10,6 +10,8 @@ use fts::{Frequence, FrequenceCooccurence, OrderBy};
 use hyper::HeaderMap;
 use ory_kratos_client::apis::configuration::Configuration;
 use serde::Deserialize;
+use uuid::Uuid;
+use sqlx::PgPool;
 
 use crate::{
   deserialize_stringified_list,
@@ -20,6 +22,7 @@ use crate::{
     templates::{HtmlTemplate, Results},
   },
   routes::paths,
+  AppState,
 };
 
 #[derive(Deserialize)]
@@ -49,6 +52,84 @@ pub struct ToggleElement {
   pub query_date: String,
   pub query_hashtag: String,
   pub query_ordre: String,
+}
+
+// Function to get tweets from PostgreSQL database (collected tweets)
+async fn get_tweets_from_database(
+  pool: &PgPool,
+  page: u32,
+  author: &Option<String>,
+  date: &Option<NaiveDate>,
+  hashtag: &Option<String>,
+  order: &String,
+) -> Result<Vec<fts::Tweet>, WebError> {
+  let mut tweets = Vec::new();
+  
+  // Get all collection schemas (collect_YYYYMMDD pattern)
+  let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%' ORDER BY schema_name DESC";
+  let schemas = sqlx::query_scalar::<_, String>(schema_query)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to get collection schemas: {}", e)))?;
+
+  for schema_name in schemas {
+    // Build a simple query without complex filtering for now
+    let order_clause = match order.as_str() {
+      "croissant" => "ORDER BY published_time ASC",
+      _ => "ORDER BY published_time DESC",
+    };
+    
+    let query = format!(
+      "SELECT id, created_at, published_time, user_id, user_name, user_screen_name, text, source, language, retweet_count, reply_count, quote_count FROM {}.tweet {} LIMIT 50",
+      schema_name, order_clause
+    );
+    
+    let rows = sqlx::query_as::<_, (String, String, i64, String, String, String, String, Option<String>, String, i64, i64, i64)>(&query)
+      .fetch_all(pool)
+      .await
+      .map_err(|e| WebError::WTFError(format!("Failed to query tweets from {}: {}", schema_name, e)))?;
+    
+    for row in rows {
+      // Skip if author filter doesn't match
+      if let Some(author_name) = author {
+        if row.5 != *author_name {
+          continue;
+        }
+      }
+      
+      // Skip if date filter doesn't match
+      if let Some(filter_date) = date {
+        if row.1 != filter_date.format("%Y-%m-%d").to_string() {
+          continue;
+        }
+      }
+      
+      let created_at = chrono::DateTime::from_utc(
+        chrono::NaiveDateTime::parse_from_str(&row.1, "%Y-%m-%d")
+          .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
+        chrono::Utc
+      );
+      
+      tweets.push(fts::Tweet {
+        id: row.0,
+        user_id: row.3,
+        user_name: row.4,
+        user_screen_name: row.5,
+        text: row.6,
+        published_time: created_at,
+        published_time_ms: row.2 as u64,
+        retweet_count: row.9 as u64,
+        reply_count: row.10 as u64,
+        quote_count: row.11 as u64,
+        hashtags: Vec::new(), // TODO: Get hashtags from tweet_hashtag table
+        urls: Vec::new(), // TODO: Get URLs from tweet_url table
+        source: row.7,
+        created_at: Some(row.1),
+      });
+    }
+  }
+  
+  Ok(tweets)
 }
 
 pub async fn get_results(
@@ -103,7 +184,8 @@ pub async fn get_results(
 
   let index = fts::Index::open_in_dir(directory_path)?;
 
-  let tweets = fts::search_tweets_for_result(
+  // Get tweets from Tantivy index (analyzed tweets)
+  let mut tweets = fts::search_tweets_for_result(
     &index,
     &match query_params.auteur.clone() {
       Some(author) => vec![author],
@@ -118,6 +200,42 @@ pub async fn get_results(
     &hashtag,
     page,
   )?;
+
+  // Get tweets from PostgreSQL database (collected tweets)
+  let pg_pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
+    .unwrap_or_else(|_| "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()))
+    .await
+    .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
+    
+  let db_tweets = get_tweets_from_database(
+    &pg_pool,
+    page,
+    &query_params.auteur,
+    &date,
+    &hashtag,
+    &order,
+  ).await?;
+
+  // Combine tweets from both sources
+  tweets.extend(db_tweets);
+
+  // Sort combined tweets by published_time
+  tweets.sort_by(|a, b| {
+    if order == "croissant" {
+      a.published_time_ms.cmp(&b.published_time_ms)
+    } else {
+      b.published_time_ms.cmp(&a.published_time_ms)
+    }
+  });
+
+  // Limit to 10 tweets per page
+  let start_index = ((page - 1) * 10) as usize;
+  let end_index = (start_index + 10).min(tweets.len());
+  let tweets = if start_index < tweets.len() {
+    tweets[start_index..end_index].to_vec()
+  } else {
+    Vec::new()
+  };
   let cooccurences = cocktail_db_twitter::search_topk_hashtags_cooccurence(conn.clone()).await?;
 
   let frequences = fts::search_study_hashtags_count_per_day(

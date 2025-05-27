@@ -19,7 +19,7 @@
                   <turbo-frame id="tweets-list">
                     <div class="tweets analyse">
                       {% for tweet in tweets %}
-                      <span class="tweet-info" data-tweeet-id="{{ tweet.id }}">
+                      <span class="tweet-info" data-tweeet-id="{{ tweet.id }}" data-tweet-source="{% match tweet.source %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}" data-tweet-text="{{ tweet.text }}" data-tweet-author="{{ tweet.user_screen_name }}" data-tweet-author-name="{{ tweet.user_name }}" data-tweet-date="{% match tweet.created_at %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}">
                         <div class="retweet-container" style="display: none;">
                           {{ tweet.retweet_count }} retweet{% if tweet.retweet_count > 1 %}s{% endif %}
                         </div>

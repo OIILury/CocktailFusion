@@ -303,6 +303,8 @@ pub fn search_tweets(
       quote_count: extract(&doc, &quote_count, extract_u64),
       hashtags: extract_vec(&doc, &hashtags, extract_string),
       urls: extract_vec(&doc, &urls, extract_string),
+      source: Some("Twitter".to_string()),
+      created_at: None,
     })
     .collect();
 
@@ -363,6 +365,8 @@ pub fn search_tweets_for_analysis(
       quote_count: extract(&doc, &quote_count, extract_u64),
       hashtags: extract_vec(&doc, &hashtags, extract_string),
       urls: extract_vec(&doc, &urls, extract_string),
+      source: Some("Twitter".to_string()),
+      created_at: None,
     })
     .collect();
 
@@ -432,6 +436,8 @@ pub fn search_tweets_for_preview(
       quote_count: extract(&doc, &quote_count, extract_u64),
       hashtags: extract_vec(&doc, &hashtags, extract_string),
       urls: extract_vec(&doc, &urls, extract_string),
+      source: Some("Twitter".to_string()),
+      created_at: None,
     })
     .collect();
 
@@ -543,6 +549,8 @@ pub fn search_tweets_for_result(
       quote_count: extract(&doc, &quote_count, extract_u64),
       hashtags: extract_vec(&doc, &hashtags, extract_string),
       urls: extract_vec(&doc, &urls, extract_string),
+      source: Some("Twitter".to_string()),
+      created_at: None,
     })
     .collect();
 
@@ -589,6 +597,8 @@ pub fn get_all_tweets(index: &Index) -> Result<Vec<Tweet>, SearchError> {
       quote_count: extract(&doc, &quote_count, extract_u64),
       hashtags: extract_vec(&doc, &hashtags, extract_string),
       urls: extract_vec(&doc, &urls, extract_string),
+      source: Some("Twitter".to_string()),
+      created_at: None,
     })
     .collect();
 
@@ -1479,6 +1489,8 @@ pub struct Tweet {
   pub quote_count: u64,
   pub hashtags: Vec<String>,
   pub urls: Vec<String>,
+  pub source: Option<String>,
+  pub created_at: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

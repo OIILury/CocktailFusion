@@ -25,6 +25,8 @@ pub mod automation;
 pub struct Context {
   pub tweets: Vec<Tweet>,
   pub niveau: i64,
+  pub isLogin: bool,
+  pub pageTitle: String,
 }
 
 #[tracing::instrument]
@@ -58,9 +60,14 @@ pub async fn home(
       "text:lubrizol",
       &Some(OrderBy::RetweetCount),
     )?;
-    let data = Context { tweets, niveau };
+    let data = Context { 
+      tweets, 
+      niveau,
+      isLogin: true,
+      pageTitle: "Se connecter".to_string(),
+    };
     let content = handlebars_registry
-      .render("login.html", &data)
+      .render("auth.html", &data)
       .map_err(|e| WebError::WTFError(e.to_string()))?;
 
     Ok(Html(content).into_response())

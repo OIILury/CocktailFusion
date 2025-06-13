@@ -2,4 +2,8 @@
 	<h2 class="connection-form__title">{{ title }}</h2>
 	{{> messages.html messages=data.ui.messages }}
 	{{> ui_nodes.html nodes=data.ui.nodes only }}
+	<div class="connection-form__register">
+		<a href="/auth/registration" class="button btn-register">Créer un compte</a>
+	</div>
 </form>
+

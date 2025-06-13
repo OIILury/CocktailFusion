@@ -16,7 +16,7 @@
         
         <div class="accordion">
           <span class="icon-chevron"></span>
-          <span>Vos critères d'étude</span>
+          <span>Les données à utiliser</span>
         </div>
 
         {% include "_panel_criteria.html" %}
@@ -24,7 +24,7 @@
         {% if is_analyzed %}
         <div class="accordion">
           <span class="icon-chevron"></span>
-          <span>Les tweets de votre étude</span>
+          <span>Les messages de votre étude</span>
         </div>
         {% include "_panel_analysis.html" %}
 
@@ -187,23 +187,49 @@
             <div class="selected-files" id="selectedFiles">
                 <!-- Les fichiers seront affichés ici -->
             </div>
+
+            <!-- Prévisualisation des données -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h4>Prévisualisation des données</h4>
+                <div class="preview-info">
+                    <p>Nombre total de lignes : <span id="totalRows">0</span></p>
+                    <p>Nombre de colonnes : <span id="totalColumns">0</span></p>
+                </div>
+                <div class="preview-table-container">
+                    <table class="preview-table" id="previewTable">
+                        <thead>
+                            <!-- Les en-têtes seront ajoutés ici -->
+                        </thead>
+                        <tbody>
+                            <!-- Les données seront ajoutées ici -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="preview-issues" id="previewIssues">
+                    <!-- Les problèmes détectés seront affichés ici -->
+                </div>
+            </div>
     
             <!-- Sélection des réseaux sociaux -->
             <div class="social-options">
-                <label>Réseaux sociaux</label>
+                <label>Source des données</label>
                 <div class="checkbox-group">
                     <div class="checkbox-option">
-                        <input type="checkbox" id="twitterCheck" checked>
+                        <input type="checkbox" id="twitterCheck">
                         <label for="twitterCheck">Twitter</label>
                     </div>
                     <div class="checkbox-option">
-                        <input type="checkbox" id="blueskyCheck" checked>
+                        <input type="checkbox" id="blueskyCheck">
                         <label for="blueskyCheck">Bluesky</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="unknownCheck" checked>
+                        <label for="unknownCheck">Inconnu</label>
                     </div>
                 </div>
             </div>
     
-            <button id="startImport" class="primary-button">Démarrer l'importation</button>
+            <button id="startImport" class="primary-button" disabled>Démarrer l'importation</button>
         </div>
       </div>
     </section>
@@ -242,6 +268,64 @@
 
     .instruction-header.active .toggle-icon {
         transform: rotate(180deg);
+    }
+
+    .preview-section {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .preview-info {
+        margin-bottom: 15px;
+        color: #666;
+    }
+
+    .preview-table-container {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-bottom: 15px;
+    }
+
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    .preview-table th,
+    .preview-table td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .preview-table th {
+        background: #f5f5f5;
+        position: sticky;
+        top: 0;
+    }
+
+    .preview-issues {
+        margin-top: 15px;
+        padding: 10px;
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 4px;
+    }
+
+    .issue-item {
+        margin: 5px 0;
+        color: #856404;
+    }
+
+    .issue-item.warning {
+        color: #856404;
+    }
+
+    .issue-item.error {
+        color: #721c24;
     }
 
     /* Styles pour les notifications */
@@ -342,7 +426,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Initialisation de la page d\'importation');
         const fileDropZone = document.getElementById('fileDropZone');
         const fileInput = document.getElementById('fileInput');
         const selectedFiles = document.getElementById('selectedFiles');
@@ -353,17 +436,40 @@
         const multipleFilesCard = document.getElementById('multipleFilesCard');
         const dropZoneText = document.getElementById('dropZoneText');
         const importNameInput = document.getElementById('importName');
+        const previewSection = document.getElementById('previewSection');
+        const previewTable = document.getElementById('previewTable');
+        const totalRows = document.getElementById('totalRows');
+        const totalColumns = document.getElementById('totalColumns');
+        const previewIssues = document.getElementById('previewIssues');
+        const twitterCheck = document.getElementById('twitterCheck');
+        const blueskyCheck = document.getElementById('blueskyCheck');
+        const unknownCheck = document.getElementById('unknownCheck');
         let currentFiles = [];
 
-        // Gestion du mode d'importation avec les cartes
+        // Gestion des cases à cocher pour la source des données
+        function updateSourceCheckboxes() {
+            const isAnyChecked = twitterCheck.checked || blueskyCheck.checked;
+            unknownCheck.checked = !isAnyChecked;
+        }
+
+        twitterCheck.addEventListener('change', updateSourceCheckboxes);
+        blueskyCheck.addEventListener('change', updateSourceCheckboxes);
+        unknownCheck.addEventListener('change', function() {
+            if (this.checked) {
+                twitterCheck.checked = false;
+                blueskyCheck.checked = false;
+            }
+        });
+
+        // Gestion du mode d'importation
         singleFileCard.addEventListener('click', () => {
             singleFileMode.checked = true;
             dropZoneText.textContent = 'Glissez et déposez votre fichier CSV ici';
             fileInput.removeAttribute('multiple');
             currentFiles = [];
             selectedFiles.innerHTML = '';
+            previewSection.style.display = 'none';
             updateCardStyles();
-            updateInstructions();
         });
 
         multipleFilesCard.addEventListener('click', () => {
@@ -372,8 +478,8 @@
             fileInput.setAttribute('multiple', '');
             currentFiles = [];
             selectedFiles.innerHTML = '';
+            previewSection.style.display = 'none';
             updateCardStyles();
-            updateInstructions();
         });
 
         function updateCardStyles() {
@@ -381,36 +487,17 @@
             multipleFilesCard.style.borderColor = multipleFilesMode.checked ? '#e63429' : '#ddd';
         }
 
-        function updateInstructions() {
-            const singleInstructions = document.getElementById('singleFileInstructions');
-            const multipleInstructions = document.getElementById('multipleFilesInstructions');
-            
-            if (singleFileMode.checked) {
-                singleInstructions.style.display = 'block';
-                multipleInstructions.style.display = 'none';
-            } else {
-                singleInstructions.style.display = 'none';
-                multipleInstructions.style.display = 'block';
-            }
-        }
-
-        // Initialiser les styles des cartes et les instructions
-        updateCardStyles();
-        updateInstructions();
-
         // Gestion du drag and drop
         fileDropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
             fileDropZone.classList.add('dragover');
-            console.log('Fichier(s) survolant la zone de dépôt');
         });
 
         fileDropZone.addEventListener('dragleave', (e) => {
             e.preventDefault();
             e.stopPropagation();
             fileDropZone.classList.remove('dragover');
-            console.log('Fichier(s) quittant la zone de dépôt');
         });
 
         fileDropZone.addEventListener('drop', (e) => {
@@ -418,21 +505,17 @@
             e.stopPropagation();
             fileDropZone.classList.remove('dragover');
             const files = Array.from(e.dataTransfer.files);
-            console.log('Fichiers déposés:', files.map(f => f.name));
             handleFiles(files);
         });
 
         // Gestion du clic sur le bouton "Parcourir"
         fileInput.addEventListener('change', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             const files = Array.from(e.target.files);
-            console.log('Fichiers sélectionnés:', files.map(f => f.name));
             handleFiles(files);
         });
 
         // Gestion des fichiers sélectionnés
-        function handleFiles(files) {
+        async function handleFiles(files) {
             const validFiles = files.filter(file => 
                 file.type === 'text/csv' || 
                 file.type === 'application/vnd.ms-excel' ||
@@ -440,14 +523,12 @@
             );
 
             if (validFiles.length === 0) {
-                console.error('Aucun fichier CSV valide');
-                alert('Veuillez sélectionner au moins un fichier CSV valide');
+                showNotification('error', 'Erreur', 'Veuillez sélectionner au moins un fichier CSV valide');
                 return;
             }
 
             if (singleFileMode.checked && validFiles.length > 1) {
-                console.error('Trop de fichiers pour le mode fichier unique');
-                alert('Veuillez sélectionner un seul fichier en mode fichier unique');
+                showNotification('error', 'Erreur', 'Veuillez sélectionner un seul fichier en mode fichier unique');
                 return;
             }
 
@@ -475,10 +556,86 @@
                     currentFiles = currentFiles.filter(file => file.name !== fileName);
                     if (currentFiles.length === 0) {
                         importNameInput.value = '';
+                        previewSection.style.display = 'none';
                     }
                     handleFiles(currentFiles);
                 });
             });
+
+            // Analyser le premier fichier pour la prévisualisation
+            if (validFiles.length > 0) {
+                const file = validFiles[0];
+                const content = await file.text();
+                analyzeCsv(content);
+            }
+        }
+
+        // Fonction pour analyser le CSV
+        async function analyzeCsv(content) {
+            try {
+                const response = await fetch('/api/analyze/csv', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/csv',
+                    },
+                    body: content
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur lors de l\'analyse du fichier');
+                }
+
+                const analysis = await response.json();
+                displayPreview(analysis);
+            } catch (error) {
+                showNotification('error', 'Erreur', 'Erreur lors de l\'analyse du fichier CSV');
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Fonction pour afficher la prévisualisation
+        function displayPreview(analysis) {
+            // Mettre à jour les informations générales
+            totalRows.textContent = analysis.total_rows;
+            totalColumns.textContent = analysis.total_columns;
+
+            // Créer le tableau
+            const thead = previewTable.querySelector('thead');
+            const tbody = previewTable.querySelector('tbody');
+            
+            // En-têtes
+            thead.innerHTML = `
+                <tr>
+                    ${analysis.headers.map(header => `<th>${header}</th>`).join('')}
+                </tr>
+            `;
+
+            // Données
+            tbody.innerHTML = analysis.preview.map(row => `
+                <tr>
+                    ${analysis.headers.map(header => `<td>${row[header] || ''}</td>`).join('')}
+                </tr>
+            `).join('');
+
+            // Afficher les problèmes détectés
+            if (analysis.issues.length > 0) {
+                previewIssues.innerHTML = `
+                    <h5>Problèmes détectés :</h5>
+                    ${analysis.issues.map(issue => `
+                        <div class="issue-item ${issue.issue_type.toLowerCase()}">
+                            ${issue.message}
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                previewIssues.innerHTML = '';
+            }
+
+            // Afficher la section de prévisualisation
+            previewSection.style.display = 'block';
+
+            // Activer le bouton d'importation
+            startImport.disabled = false;
         }
 
         // Formatage de la taille du fichier
@@ -573,18 +730,22 @@
             if (messageElement) messageElement.textContent = message;
         }
 
-        // Modification du gestionnaire d'importation
+        // Gestionnaire d'importation
         startImport.addEventListener('click', async () => {
-            console.log('Début de l\'importation');
-            
             if (currentFiles.length === 0) {
                 showNotification('error', 'Erreur', 'Veuillez sélectionner au moins un fichier CSV');
                 return;
             }
 
-            const importName = document.getElementById('importName').value;
+            const importName = importNameInput.value;
             if (!importName) {
                 showNotification('error', 'Erreur', 'Veuillez entrer un nom pour l\'importation');
+                return;
+            }
+
+            // Vérifier qu'une source est sélectionnée
+            if (!twitterCheck.checked && !blueskyCheck.checked && !unknownCheck.checked) {
+                showNotification('error', 'Erreur', 'Veuillez sélectionner une source pour les données');
                 return;
             }
 
@@ -603,6 +764,8 @@
             });
             formData.append('name', importName);
             formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
+            formData.append('source', twitterCheck.checked ? 'twitter' : 
+                          blueskyCheck.checked ? 'bluesky' : 'unknown');
 
             try {
                 // Simuler la progression pendant l'importation
@@ -654,9 +817,11 @@
                     }, 2000);
 
                     // Réinitialiser le formulaire
-                    document.getElementById('importName').value = '';
+                    importNameInput.value = '';
                     selectedFiles.innerHTML = '';
+                    previewSection.style.display = 'none';
                     currentFiles = [];
+                    startImport.disabled = true;
                 } else {
                     updateProgressNotification(
                         progressNotification,
@@ -684,14 +849,8 @@
             }
         });
 
-        // Gestion des blocs d'instructions dépliables
-        document.querySelectorAll('.instruction-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const body = header.nextElementSibling;
-                header.classList.toggle('active');
-                body.classList.toggle('active');
-            });
-        });
+        // Initialiser les styles des cartes
+        updateCardStyles();
     });
   </script>
 </body>

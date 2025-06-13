@@ -1,9 +1,12 @@
 use std::{fs::File, path::PathBuf, process::Command, str::FromStr};
+use std::fmt::Debug;
 
 use error::GraphError;
 use fts::{DocAddress, Index};
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, types::chrono::NaiveDateTime, FromRow, PgPool};
+use sqlx::{postgres::PgPoolOptions, types::chrono::NaiveDateTime, FromRow, PgPool, Pool, Postgres};
+use sqlx::postgres::copy::PgPoolCopyExt;
+use tracing::instrument;
 
 pub mod error;
 
@@ -724,4 +727,37 @@ CREATE TABLE IF NOT EXISTS "{schema}".link (
     pool.close().await;
     Ok(res)
   }
+}
+
+#[instrument]
+pub async fn copy_in_raw<S>(
+  pool: S,
+  table: &str,
+  columns: &[&str],
+  data: &[&[u8]],
+) -> sqlx::Result<()>
+where
+  S: AsRef<Pool<Postgres>> + Debug,
+{
+  // Utiliser une approche basée sur des requêtes SQL standard
+  let mut transaction = pool.as_ref().begin().await?;
+  
+  for row in data {
+    let values = row.iter()
+      .map(|&b| format!("'{}'", String::from_utf8_lossy(b)))
+      .collect::<Vec<_>>()
+      .join(", ");
+    
+    sqlx::query(&format!(
+      "INSERT INTO {} ({}) VALUES ({})",
+      table,
+      columns.join(", "),
+      values
+    ))
+    .execute(&mut *transaction)
+    .await?;
+  }
+
+  transaction.commit().await?;
+  Ok(())
 }

@@ -38,8 +38,17 @@ where
 }
 
 #[derive(Debug, Serialize)]
+pub struct RegistrationPopupContext {
+  pub data: SelfServiceRegistrationFlow,
+  pub pageTitle: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct RegistrationContext {
   pub data: SelfServiceRegistrationFlow,
+  pub isLogin: bool,
+  pub pageTitle: String,
+  pub niveau: i64,
 }
 
 #[tracing::instrument]
@@ -76,14 +85,22 @@ pub async fn auth_registration(
         .len()
         == 0
     {
-      let data = RegistrationContext { data: res };
+      let data = RegistrationPopupContext { 
+        data: res,
+        pageTitle: "Enregistrer un compte".to_string(),
+      };
       content = handlebars_registry
         .render("registration_popin.html", &data)
         .map_err(|e| WebError::WTFError(e.to_string()))?;
     } else {
-      let data = RegistrationContext { data: res };
+      let data = RegistrationContext { 
+        data: res,
+        isLogin: false,
+        pageTitle: "Enregistrer un compte".to_string(),
+        niveau: 0,
+      };
       content = handlebars_registry
-        .render("registration.html", &data)
+        .render("auth.html", &data)
         .map_err(|e| WebError::WTFError(e.to_string()))?;
     }
 
@@ -101,6 +118,9 @@ pub async fn auth_registration(
 pub struct LoginContext {
   pub data: SelfServiceLoginFlow,
   pub tweets: Vec<Tweet>,
+  pub isLogin: bool,
+  pub pageTitle: String,
+  pub niveau: i64,
 }
 
 pub async fn auth_login(
@@ -125,9 +145,15 @@ pub async fn auth_login(
       "text:lubrizol",
       &Some(OrderBy::RetweetCount),
     )?;
-    let data = LoginContext { data: res, tweets };
+    let data = LoginContext { 
+      data: res, 
+      tweets,
+      isLogin: true,
+      pageTitle: "Se connecter".to_string(),
+      niveau: 0,
+    };
     let content = handlebars_registry
-      .render("login.html", &data)
+      .render("auth.html", &data)
       .map_err(|e| WebError::WTFError(e.to_string()))?;
 
     Ok(Html(content).into_response())

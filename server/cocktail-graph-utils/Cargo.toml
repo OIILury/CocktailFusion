@@ -9,7 +9,7 @@ edition = "2021"
 fts = { version = "0.1.0", path = "../fts" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true, features = ["postgres"] }
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio-rustls"] }
 thiserror = "1"
 tracing = "0.1"
 cocktail-db-web = { path = "../cocktail-db-web" }

@@ -1,11 +1,12 @@
-use std::{collections::HashSet, fmt::Debug};
-
+use std::fmt::Debug;
 use chrono::{Local, NaiveDate, Utc};
-use chronoutil::shift_months;
-use fts::FrequenceByDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Json, Decode, SqlitePool};
-use uuid::adapter::Hyphenated;
+use std::collections::HashSet;
+
+use chronoutil::shift_months;
+use fts::FrequenceByDate;
+use uuid::Uuid;
 
 pub use fts::Bloc;
 
@@ -36,18 +37,22 @@ where
   sqlx::query_as!(
     Project,
     r#"
-        SELECT project_id AS "project_id: Hyphenated",
-            user_id,title, event_count, tweets_count, authors_count,
-            updated_at AS "updated_at: NaiveDate",
-            start_date AS "start_date: NaiveDate",
-            end_date AS "end_date: NaiveDate",
-            is_custom_date,
-            hashtag_list AS "hashtag_list: Json<HashSet<HashtagWithCount>>",
-            exclude_hashtag_list AS "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
-            request_params AS "request_params: Json<Vec<Vec<Bloc>>>",
-            is_analyzed
+        SELECT project_id AS "project_id!: String",
+            user_id AS "user_id!: String",
+            title AS "title!: String",
+            event_count AS "event_count!: i64",
+            tweets_count AS "tweets_count!: i64",
+            authors_count AS "authors_count!: i64",
+            updated_at AS "updated_at!: NaiveDate",
+            start_date AS "start_date!: NaiveDate",
+            end_date AS "end_date!: NaiveDate",
+            is_custom_date AS "is_custom_date!: i64",
+            hashtag_list AS "hashtag_list!: Json<HashSet<HashtagWithCount>>",
+            exclude_hashtag_list AS "exclude_hashtag_list!: Json<HashSet<HashtagWithCount>>",
+            request_params AS "request_params!: Json<Vec<Vec<Bloc>>>",
+            is_analyzed AS "is_analyzed!: i64"
         FROM project
-        WHERE user_id = ?1
+        WHERE user_id = $1
         "#,
     user_id
   )
@@ -56,25 +61,29 @@ where
 }
 
 #[tracing::instrument]
-pub async fn project<S>(pool: S, project_id: Hyphenated, user_id: &String) -> sqlx::Result<Project>
+pub async fn project<S>(pool: S, project_id: String, user_id: &String) -> sqlx::Result<Project>
 where
   S: AsRef<SqlitePool> + Debug,
 {
   sqlx::query_as!(
     Project,
     r#"
-        SELECT project_id AS "project_id: Hyphenated",
-            user_id,title, event_count, tweets_count, authors_count,
-            updated_at AS "updated_at: NaiveDate",
-            start_date AS "start_date: NaiveDate",
-            end_date AS "end_date: NaiveDate",
-            is_custom_date,
-            hashtag_list AS "hashtag_list: Json<HashSet<HashtagWithCount>>",
-            exclude_hashtag_list AS "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>",
-            request_params AS "request_params: Json<Vec<Vec<Bloc>>>",
-            is_analyzed
+        SELECT project_id AS "project_id!: String",
+            user_id AS "user_id!: String",
+            title AS "title!: String",
+            event_count AS "event_count!: i64",
+            tweets_count AS "tweets_count!: i64",
+            authors_count AS "authors_count!: i64",
+            updated_at AS "updated_at!: NaiveDate",
+            start_date AS "start_date!: NaiveDate",
+            end_date AS "end_date!: NaiveDate",
+            is_custom_date AS "is_custom_date!: i64",
+            hashtag_list AS "hashtag_list!: Json<HashSet<HashtagWithCount>>",
+            exclude_hashtag_list AS "exclude_hashtag_list!: Json<HashSet<HashtagWithCount>>",
+            request_params AS "request_params!: Json<Vec<Vec<Bloc>>>",
+            is_analyzed AS "is_analyzed!: i64"
         FROM project
-        WHERE project_id = ?1 AND user_id = ?2"#,
+        WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
@@ -85,17 +94,17 @@ where
 #[tracing::instrument]
 pub async fn update_project_title<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   title: &str,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  sqlx::query!(
-    r#"UPDATE project SET title = ?1, updated_at = ?2 WHERE project_id = ?3 AND user_id = ?4"#,
+  let result = sqlx::query!(
+    r#"UPDATE project SET title = $1, updated_at = $2 WHERE project_id = $3 AND user_id = $4"#,
     title,
     today,
     project_id,
@@ -104,25 +113,25 @@ where
   .execute(pool.as_ref())
   .await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn update_project_daterange<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   start_date: &String,
   end_date: &String,
   is_custom_date: i64,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  sqlx::query!(
-        r#"UPDATE project SET start_date = ?1, end_date = ?2, is_custom_date = ?3, updated_at = ?4 WHERE project_id = ?5 AND user_id = ?6"#,
+  let result = sqlx::query!(
+        r#"UPDATE project SET start_date = $1, end_date = $2, is_custom_date = $3, updated_at = $4 WHERE project_id = $5 AND user_id = $6"#,
         start_date,
         end_date,
         is_custom_date,
@@ -133,28 +142,28 @@ where
     .execute(pool.as_ref())
     .await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn update_project_request_params<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   request_params: Vec<Vec<Bloc>>,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
   let json_request_params = Json(request_params);
 
-  sqlx::query!(
+  let result = sqlx::query!(
     r#"
-        UPDATE project SET request_params = ?1,
-            updated_at = ?2
-        WHERE project_id = ?3 AND user_id = ?4"#,
+        UPDATE project SET request_params = $1,
+            updated_at = $2
+        WHERE project_id = $3 AND user_id = $4"#,
     json_request_params,
     today,
     project_id,
@@ -163,17 +172,19 @@ where
   .execute(pool.as_ref())
   .await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
-pub async fn create_project<S>(pool: S, project: Project) -> sqlx::Result<()>
+pub async fn create_project<S>(pool: S, project: Project) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  sqlx::query!(
+  let mut tx = pool.as_ref().begin().await?;
+
+  let result = sqlx::query!(
         r#"
 INSERT INTO project (project_id, user_id, title, event_count, tweet_count, updated_at, start_date, end_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -187,26 +198,28 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         project.start_date,
         project.end_date,
     )
-    .execute(pool.as_ref())
+    .execute(&mut *tx)
     .await?;
 
-  Ok(())
+  tx.commit().await?;
+
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn delete_project<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  sqlx::query!(
+  let result = sqlx::query!(
     r#"
     DELETE FROM project
-    WHERE project_id = ?
-    AND user_id = ?
+    WHERE project_id = $1
+    AND user_id = $2
     "#,
     project_id,
     user_id
@@ -214,36 +227,36 @@ where
   .execute(pool.as_ref())
   .await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
-pub async fn delete_anonymous_project<S>(pool: S, project_id: Hyphenated) -> sqlx::Result<()>
+pub async fn delete_anonymous_project<S>(pool: S, project_id: String) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  sqlx::query!(
+  let result = sqlx::query!(
     r#"
     DELETE FROM project
-    WHERE project_id = ?
+    WHERE project_id = $1
     "#,
     project_id,
   )
   .execute(pool.as_ref())
   .await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
-pub async fn delete_chart<S>(pool: S, project_id: Hyphenated) -> sqlx::Result<()>
+pub async fn delete_chart<S>(pool: S, project_id: String) -> sqlx::Result<()>
 where
   S: AsRef<SqlitePool> + Debug,
 {
   sqlx::query!(
     r#"
     DELETE FROM chart
-    WHERE project_id = ?
+    WHERE project_id = $1
     "#,
     project_id,
   )
@@ -256,16 +269,16 @@ where
 #[tracing::instrument]
 pub async fn rename_project<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   title: &str,
 ) -> sqlx::Result<()>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
   sqlx::query!(
-    r#"UPDATE project SET title = ?1, updated_at = ?2 WHERE project_id = ?3 AND user_id = ?4"#,
+    r#"UPDATE project SET title = $1, updated_at = $2 WHERE project_id = $3 AND user_id = $4"#,
     title,
     today,
     project_id,
@@ -280,8 +293,8 @@ where
 #[tracing::instrument]
 pub async fn duplicate_project<S>(
   pool: S,
-  project_id: Hyphenated,
-  new_project_id: Hyphenated,
+  project_id: String,
+  new_project_id: String,
   user_id: &String,
   title: &str,
 ) -> sqlx::Result<()>
@@ -292,10 +305,10 @@ where
     r#"
       INSERT INTO project(project_id, title, user_id, event_count, tweet_count, start_date, 
         end_date, is_custom_date, hashtag_list, exclude_hashtag_list) 
-      SELECT ?1, ?2, ?4, event_count, tweet_count, start_date, end_date, 
+      SELECT $1, $2, $4, event_count, tweet_count, start_date, end_date, 
         is_custom_date, hashtag_list, exclude_hashtag_list
       FROM project
-      WHERE project_id = ?3 AND user_id = ?4"#,
+      WHERE project_id = $3 AND user_id = $4"#,
     new_project_id,
     title,
     project_id,
@@ -310,27 +323,28 @@ where
 #[tracing::instrument]
 pub async fn add_hashtag<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   hashtag: &str,
   count: i64,
-  do_add: bool, // or do_remove duh !
+  do_add: bool,
   exclude: bool,
 ) -> sqlx::Result<()>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
+  
   let mut hashtags_row = sqlx::query!(
     r#"
-        SELECT hashtag_list AS "hashtag_list: Json<HashSet<HashtagWithCount>>",
-               complete_hashtag_list AS "complete_hashtag_list: Json<HashSet<HashtagWithCount>>",
-               exclude_hashtag_list AS "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+        SELECT hashtag_list AS "hashtag_list!: Json<HashSet<HashtagWithCount>>",
+               complete_hashtag_list AS "complete_hashtag_list!: Json<HashSet<HashtagWithCount>>",
+               exclude_hashtag_list AS "exclude_hashtag_list!: Json<HashSet<HashtagWithCount>>"
+        FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
   let hashtag_with_count = HashtagWithCount {
@@ -376,17 +390,17 @@ where
   let exclude_hashtag_list = Json(exclude_hashtag_list);
 
   sqlx::query!(
-        r#"UPDATE project SET hashtag_list = ?1, complete_hashtag_list = ?2, exclude_hashtag_list = ?3 WHERE project_id = ?4 AND user_id = ?5"#,
+        r#"UPDATE project SET hashtag_list = $1, complete_hashtag_list = $2, exclude_hashtag_list = $3 WHERE project_id = $4 AND user_id = $5"#,
         hashtag_list,
         complete_hashtag_list,
         exclude_hashtag_list,
         project_id,
         user_id
     )
-    .execute(&mut transaction)
+    .execute(&mut *tx)
     .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
   Ok(())
 }
 
@@ -404,105 +418,115 @@ pub struct HiddenElementTweetsList {
 #[tracing::instrument]
 pub async fn toggle_hashtag<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   hashtag: &str,
   hide: bool,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
 
-  let HiddenElementsRow { list } = sqlx::query_as!(
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
     HiddenElementsRow,
-    r#"SELECT hidden_hashtag_list AS "list: Json<_>" FROM "project" WHERE project_id = ? AND user_id = ?"#,
+    r#"
+    SELECT hidden_hashtag_list AS "list!: Json<HashSet<String>>"
+    FROM project
+    WHERE project_id = $1 AND user_id = $2
+    "#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
-  let mut hidden_hashtag_list: Json<HashSet<String>> =
-    Json(HashSet::from_iter(list.iter().cloned()));
-
+  let mut hidden_hashtag_list = hidden_hashtag_list.list.0;
   if hide {
     hidden_hashtag_list.insert(hashtag.to_string());
   } else {
     hidden_hashtag_list.remove(hashtag);
   }
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  sqlx::query!(
-    r#"UPDATE project SET hidden_hashtag_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"#,
-    hidden_hashtag_list,
+  let json_data = Json(hidden_hashtag_list);
+  let result = sqlx::query!(
+    r#"
+    UPDATE project SET hidden_hashtag_list = $1, updated_at = $2
+    WHERE project_id = $3 AND user_id = $4
+    "#,
+    json_data,
     today,
     project_id,
     user_id
   )
-  .execute(&mut transaction)
+  .execute(&mut *tx)
   .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn toggle_all<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   hide: bool,
   hashtags: Vec<String>,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
 
-  let HiddenElementsRow { list } = sqlx::query_as!(
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
     HiddenElementsRow,
-    r#"SELECT hidden_hashtag_list AS "list: Json<_>" FROM "project" WHERE project_id = ? AND user_id = ?"#,
+    r#"
+    SELECT hidden_hashtag_list AS "list!: Json<HashSet<String>>"
+    FROM project
+    WHERE project_id = $1 AND user_id = $2
+    "#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
-  let mut hidden_hashtag_list: Json<HashSet<String>> =
-    Json(HashSet::from_iter(list.iter().cloned()));
-
-  if hide {
-    for hashtag in hashtags {
-      hidden_hashtag_list.insert(hashtag.to_string());
-    }
-  } else {
-    for hashtag in hashtags {
-      hidden_hashtag_list.remove(&hashtag.to_string());
+  let mut hidden_hashtag_list = hidden_hashtag_list.list.0;
+  for hashtag in hashtags {
+    if hide {
+      hidden_hashtag_list.insert(hashtag);
+    } else {
+      hidden_hashtag_list.remove(&hashtag);
     }
   }
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  sqlx::query!(
-    r#"UPDATE project SET hidden_hashtag_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"#,
-    hidden_hashtag_list,
+  let json_data = Json(hidden_hashtag_list);
+  let result = sqlx::query!(
+    r#"
+    UPDATE project SET hidden_hashtag_list = $1, updated_at = $2
+    WHERE project_id = $3 AND user_id = $4
+    "#,
+    json_data,
     today,
     project_id,
     user_id
   )
-  .execute(&mut transaction)
+  .execute(&mut *tx)
   .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn hashtag_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<Vec<HashtagWithCount>>
 where
@@ -510,8 +534,8 @@ where
 {
   let result = sqlx::query!(
     r#"
-        SELECT hashtag_list AS "hashtag_list: Json<HashSet<HashtagWithCount>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+        SELECT hashtag_list AS "hashtag_list!: Json<HashSet<HashtagWithCount>>"
+        FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
@@ -527,7 +551,7 @@ where
 #[tracing::instrument]
 pub async fn hashtag_list_premium_request<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   block_id: i32,
 ) -> sqlx::Result<Vec<String>>
@@ -556,7 +580,7 @@ where
 #[tracing::instrument]
 pub async fn hidden_hashtag_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<Vec<String>>
 where
@@ -564,8 +588,8 @@ where
 {
   let result = sqlx::query!(
     r#"
-        SELECT hidden_hashtag_list AS "hidden_hashtag_list: Json<HashSet<String>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+        SELECT hidden_hashtag_list AS "hidden_hashtag_list!: Json<HashSet<String>>"
+        FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
@@ -578,17 +602,24 @@ where
 #[tracing::instrument]
 pub async fn hidden_hashtag_tweet_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<HiddenElementTweetsList>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let result = sqlx::query!(
-    r#"
-        SELECT hidden_hashtag_tweets_list AS "hidden_hashtag_tweets_list: Json<HashSet<String>>",
-          hidden_author_tweets_list AS "hidden_author_tweets_list: Json<HashSet<String>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
+    HiddenElementsRow,
+    r#"SELECT hidden_hashtag_tweets_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
+    project_id,
+    user_id
+  )
+  .fetch_one(pool.as_ref())
+  .await?;
+
+  let hidden_author_list: HiddenElementsRow = sqlx::query_as!(
+    HiddenElementsRow,
+    r#"SELECT hidden_author_tweets_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
@@ -596,187 +627,189 @@ where
   .await?;
 
   Ok(HiddenElementTweetsList {
-    hidden_hashtag_list: Vec::from_iter(result.hidden_hashtag_tweets_list.0),
-    hidden_author_list: Vec::from_iter(result.hidden_author_tweets_list.0),
+    hidden_hashtag_list: hidden_hashtag_list.list.0.into_iter().collect(),
+    hidden_author_list: hidden_author_list.list.0.into_iter().collect(),
   })
 }
 
 #[tracing::instrument]
 pub async fn hidden_hashtag_tweet_graph_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<Vec<String>>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let result = sqlx::query!(
-    r#"
-        SELECT hidden_hashtag_tweets_graph_list AS "hidden_hashtag_tweets_graph_list: Json<HashSet<String>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
+    HiddenElementsRow,
+    r#"SELECT hidden_hashtag_tweets_graph_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
   .fetch_one(pool.as_ref())
   .await?;
 
-  Ok(Vec::from_iter(result.hidden_hashtag_tweets_graph_list.0))
+  Ok(hidden_hashtag_list.list.0.into_iter().collect())
 }
 
 #[tracing::instrument]
 pub async fn toggle_hashtag_tweets_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   hashtags: Vec<String>,
   hide: bool,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
 
-  let HiddenElementsRow { list } = sqlx::query_as!(
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
     HiddenElementsRow,
-    r#"SELECT hidden_hashtag_tweets_list AS "list: Json<_>" FROM "project" WHERE project_id = ? AND user_id = ?"#,
+    r#"SELECT hidden_hashtag_tweets_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
-  let mut hidden_hashtag_tweets_list: Json<HashSet<String>> =
-    Json(HashSet::from_iter(list.iter().cloned()));
-
-  hashtags.iter().for_each(|hashtag| {
+  let mut hidden_hashtag_list = hidden_hashtag_list.list.0;
+  for hashtag in hashtags {
     if hide {
-      hidden_hashtag_tweets_list.insert(hashtag.to_string());
+      hidden_hashtag_list.insert(hashtag);
     } else {
-      hidden_hashtag_tweets_list.remove(hashtag);
+      hidden_hashtag_list.remove(&hashtag);
     }
-  });
+  }
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
-
-  sqlx::query!(
-    r#"UPDATE project SET hidden_hashtag_tweets_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"#,
-    hidden_hashtag_tweets_list,
+  let json_data = Json(hidden_hashtag_list);
+  let result = sqlx::query!(
+    r#"
+    UPDATE project SET hidden_hashtag_tweets_list = $1, updated_at = $2
+    WHERE project_id = $3 AND user_id = $4
+    "#,
+    json_data,
     today,
     project_id,
     user_id
   )
-  .execute(&mut transaction)
+  .execute(&mut *tx)
   .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn toggle_author_tweets_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   authors: Vec<String>,
   hide: bool,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
 
-  let HiddenElementsRow { list } = sqlx::query_as!(
+  let hidden_author_list: HiddenElementsRow = sqlx::query_as!(
     HiddenElementsRow,
-    r#"SELECT hidden_author_tweets_list AS "list: Json<_>" FROM "project" WHERE project_id = ? AND user_id = ?"#,
+    r#"SELECT hidden_author_tweets_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
-  let mut hidden_author_tweets_list: Json<HashSet<String>> =
-    Json(HashSet::from_iter(list.iter().cloned()));
-
-  authors.iter().for_each(|author| {
+  let mut hidden_author_list = hidden_author_list.list.0;
+  for author in authors {
     if hide {
-      hidden_author_tweets_list.insert(author.to_string());
+      hidden_author_list.insert(author);
     } else {
-      hidden_author_tweets_list.remove(author);
+      hidden_author_list.remove(&author);
     }
-  });
+  }
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
-
-  sqlx::query!(
-    r#"UPDATE project SET hidden_author_tweets_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"#,
-    hidden_author_tweets_list,
+  let json_data = Json(hidden_author_list);
+  let result = sqlx::query!(
+    r#"
+    UPDATE project SET hidden_author_tweets_list = $1, updated_at = $2
+    WHERE project_id = $3 AND user_id = $4
+    "#,
+    json_data,
     today,
     project_id,
     user_id
   )
-  .execute(&mut transaction)
+  .execute(&mut *tx)
   .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn toggle_hashtag_tweets_graph_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   hashtags: Vec<String>,
   hide: bool,
-) -> sqlx::Result<()>
+) -> sqlx::Result<i64>
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let mut transaction = pool.as_ref().begin().await?;
+  let mut tx = pool.as_ref().begin().await?;
 
-  let HiddenElementsRow { list } = sqlx::query_as!(
+  let hidden_hashtag_list: HiddenElementsRow = sqlx::query_as!(
     HiddenElementsRow,
-    r#"SELECT hidden_hashtag_tweets_graph_list AS "list: Json<_>" FROM "project" WHERE project_id = ? AND user_id = ?"#,
+    r#"SELECT hidden_hashtag_tweets_graph_list AS "list!: Json<HashSet<String>>" FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
-  .fetch_one(&mut transaction)
+  .fetch_one(&mut *tx)
   .await?;
 
-  let mut hidden_hashtag_tweets_list: Json<HashSet<String>> =
-    Json(HashSet::from_iter(list.iter().cloned()));
-
-  hashtags.iter().for_each(|hashtag| {
+  let mut hidden_hashtag_list = hidden_hashtag_list.list.0;
+  for hashtag in hashtags {
     if hide {
-      hidden_hashtag_tweets_list.insert(hashtag.to_string());
+      hidden_hashtag_list.insert(hashtag);
     } else {
-      hidden_hashtag_tweets_list.remove(hashtag);
+      hidden_hashtag_list.remove(&hashtag);
     }
-  });
+  }
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
-
-  sqlx::query!(
-    r#"UPDATE project SET hidden_hashtag_tweets_graph_list = ?1, updated_at = ?2 WHERE project_id = ?3  AND user_id = ?4"#,
-    hidden_hashtag_tweets_list,
+  let json_data = Json(hidden_hashtag_list);
+  let result = sqlx::query!(
+    r#"
+    UPDATE project SET hidden_hashtag_tweets_graph_list = $1, updated_at = $2
+    WHERE project_id = $3 AND user_id = $4
+    "#,
+    json_data,
     today,
     project_id,
     user_id
   )
-  .execute(&mut transaction)
+  .execute(&mut *tx)
   .await?;
 
-  transaction.commit().await?;
+  tx.commit().await?;
 
-  Ok(())
+  Ok(result.rows_affected() as i64)
 }
 
 #[tracing::instrument]
 pub async fn exclude_hashtag_list<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<Vec<HashtagWithCount>>
 where
@@ -784,24 +817,21 @@ where
 {
   let result = sqlx::query!(
     r#"
-        SELECT exclude_hashtag_list AS "exclude_hashtag_list: Json<HashSet<HashtagWithCount>>"
-        FROM "project" WHERE project_id = ? AND user_id = ?"#,
+        SELECT exclude_hashtag_list AS "exclude_hashtag_list!: Json<HashSet<HashtagWithCount>>"
+        FROM "project" WHERE project_id = $1 AND user_id = $2"#,
     project_id,
     user_id
   )
   .fetch_one(pool.as_ref())
   .await?;
 
-  let mut ordered: Vec<HashtagWithCount> = Vec::from_iter(result.exclude_hashtag_list.0.clone());
-  ordered.sort_by(|h1, h2| h1.name.cmp(&h2.name));
-
-  Ok(ordered)
+  Ok(Vec::from_iter(result.exclude_hashtag_list.0))
 }
 
 #[tracing::instrument]
 pub async fn exclude_hashtag_count<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<i64>
 where
@@ -809,10 +839,10 @@ where
 {
   let r = sqlx::query!(
     r#"
-        SELECT COALESCE(json_array_length(exclude_hashtag_list), 0) as total
+        SELECT CAST(COALESCE(json_array_length(exclude_hashtag_list), 0) AS INTEGER) as "total!: i64"
         FROM project
-        WHERE project_id = ?1  AND user_id = ?
-       "#,
+        WHERE project_id = $1 AND user_id = $2
+        "#,
     project_id,
     user_id
   )
@@ -825,7 +855,7 @@ where
 #[tracing::instrument]
 pub async fn include_hashtag_count<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<i64>
 where
@@ -833,10 +863,10 @@ where
 {
   let r = sqlx::query!(
     r#"
-        SELECT COALESCE(json_array_length(hashtag_list), 0) as total
+        SELECT CAST(COALESCE(json_array_length(hashtag_list), 0) AS INTEGER) as "total!: i64"
         FROM project
-        WHERE project_id = ?1 AND user_id = ?2
-       "#,
+        WHERE project_id = $1 AND user_id = $2
+        "#,
     project_id,
     user_id
   )
@@ -849,23 +879,25 @@ where
 #[tracing::instrument]
 pub async fn include_exclude_hashtag_count<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
 ) -> sqlx::Result<(i64, i64)>
 where
   S: AsRef<SqlitePool> + Debug,
 {
   let r = sqlx::query!(
-        r#"
-        SELECT COALESCE(json_array_length(hashtag_list), 0) as include_count, COALESCE(json_array_length(exclude_hashtag_list), 0) as exclude_count
+    r#"
+        SELECT 
+            CAST(COALESCE(json_array_length(hashtag_list), 0) AS INTEGER) as "include_count!: i64",
+            CAST(COALESCE(json_array_length(exclude_hashtag_list), 0) AS INTEGER) as "exclude_count!: i64"
         FROM project
-        WHERE project_id = ?1 AND user_id = ?2
-       "#,
-        project_id,
-        user_id
-    )
-    .fetch_one(pool.as_ref())
-    .await?;
+        WHERE project_id = $1 AND user_id = $2
+        "#,
+    project_id,
+    user_id
+  )
+  .fetch_one(pool.as_ref())
+  .await?;
 
   Ok((r.include_count, r.exclude_count))
 }
@@ -884,7 +916,7 @@ pub struct HashtagTimeSeries {
 #[tracing::instrument]
 pub async fn validate_project_analysis<S>(
   pool: S,
-  project_id: Hyphenated,
+  project_id: String,
   user_id: &String,
   tweets_count: i64,
   authors_count: i64,
@@ -894,13 +926,13 @@ where
 {
   sqlx::query!(
     r#"UPDATE project SET is_analyzed = 1,
-      tweets_count = ?1,
-      authors_count = ?2,
+      tweets_count = $1,
+      authors_count = $2,
       hidden_hashtag_list = '[]',
       hidden_hashtag_tweets_list = '[]',
       hidden_author_tweets_list = '[]',
       hidden_hashtag_tweets_graph_list = '[]' 
-    WHERE project_id = ?3  AND user_id = ?4"#,
+    WHERE project_id = $3  AND user_id = $4"#,
     tweets_count,
     authors_count,
     project_id,
@@ -924,10 +956,7 @@ where
   S: AsRef<SqlitePool> + Debug,
 {
   let json = serde_json::to_string(&chart).unwrap();
-  let now = Local::now()
-    .naive_local()
-    .format("%Y-%m-%d %H:%M:%S")
-    .to_string();
+  let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
   sqlx::query!(
     r#"
@@ -975,12 +1004,12 @@ pub async fn get_anonymous_projects_to_clear<S>(pool: S) -> sqlx::Result<Vec<Pro
 where
   S: AsRef<SqlitePool> + Debug,
 {
-  let today = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+  let today = chrono::offset::Local::now().date_naive().format("%Y-%m-%d").to_string();
 
   sqlx::query_as!(
     ProjectId,
     r#"
-      SELECT project_id AS "project_id: Hyphenated"
+      SELECT project_id AS "project_id: String"
       FROM project
       WHERE updated_at < $1
         AND user_id NOT LIKE '%_@__%.__%'
@@ -1004,12 +1033,12 @@ pub struct HashtagWithCount {
 
 #[derive(Debug, Clone)]
 pub struct ProjectId {
-  pub project_id: Hyphenated,
+  pub project_id: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct Project {
-  pub project_id: Hyphenated,
+  pub project_id: String,
   pub user_id: String,
   pub title: String,
   pub event_count: i64,
@@ -1027,16 +1056,17 @@ pub struct Project {
 
 impl Default for Project {
   fn default() -> Self {
+    let now = Utc::now();
     Self {
-      project_id: Default::default(),
+      project_id: Uuid::new_v4().to_string(),
       user_id: Default::default(),
       title: Default::default(),
       event_count: Default::default(),
       tweets_count: Default::default(),
       authors_count: Default::default(),
-      updated_at: Utc::now().date().naive_utc(),
-      start_date: shift_months(Utc::now().date().naive_utc(), -6),
-      end_date: Utc::now().date().naive_utc(),
+      updated_at: now.date_naive(),
+      start_date: shift_months(now.date_naive(), -6),
+      end_date: now.date_naive(),
       is_custom_date: Default::default(),
       hashtag_list: Json::default(),
       exclude_hashtag_list: Json::default(),

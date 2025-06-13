@@ -34,7 +34,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3.14", features = ["env-filter"] }
 # tracing-tree = "0.2.0"
 ulid = "1.0.0"
-sqlx = { workspace = true, features = ["postgres"] }
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio-rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { workspace = true }
 

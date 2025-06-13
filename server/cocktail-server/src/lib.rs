@@ -57,6 +57,7 @@ pub mod error;
 mod helpers;
 mod models;
 mod routes;
+mod csv_analyzer;
 
 // const PATH_TEMPLATES: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth");
 // const PATH_PARTIALS: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth/partials");
@@ -202,6 +203,12 @@ pub async fn run(
     .connect_with(opts_topk_db)
     .await
     .expect("erreur : impossible de se connecter à la base de données `topk`.");
+  
+  // Initialiser les tables de la base de données topk
+  cocktail_db_twitter::init_db(&pool_topk)
+    .await
+    .expect("erreur : impossible d'initialiser les tables de la base de données topk.");
+
   cocktail_db_web::migrate(pool.clone())
     .await
     .expect("erreur : impossible de migrer la base de données.");

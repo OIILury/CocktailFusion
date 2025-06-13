@@ -1,16 +1,14 @@
 use chrono::{Duration, NaiveDate};
 use sqlx::{SqliteConnection, SqlitePool};
+use tracing::instrument;
+use std::fmt::Debug;
+use serde::{Serialize, Deserialize};
+use sqlx::types::Json;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbTwitterError {
-  #[error("Erreur SQL")]
-  SQL { source: sqlx::Error },
-}
-
-impl From<sqlx::Error> for DbTwitterError {
-  fn from(source: sqlx::Error) -> Self {
-    DbTwitterError::SQL { source }
-  }
+  #[error("SQLx error: {0}")]
+  Sqlx(#[from] sqlx::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -28,61 +26,157 @@ impl AsRef<SqlitePool> for TopKDatabase {
   }
 }
 
-pub async fn monthly_hashtags(
-  conn: &mut SqliteConnection,
-  end_date: NaiveDate,
-  duration: Duration,
-  count: i32,
-) -> Result<Vec<(String, i32)>, DbTwitterError> {
-  let start_date = end_date - duration;
-
-  let start_date = start_date.format("%F").to_string();
-  let end_date = end_date.format("%F").to_string();
-
-  sqlx::query(
-    r#"
-    SELECT hashtag
-    FROM topk
-    WHERE  date(published_time, 'unixepoch') BETWEEN ?1 AND ?2
-    ORDER BY retweet DESC
-    LIMIT ?3
-    "#,
+#[tracing::instrument]
+pub async fn monthly_hashtags<S>(
+  pool: S,
+  project_id: String,
+  user_id: &String,
+  month: i32,
+  year: i32,
+) -> sqlx::Result<Vec<Hashtag>>
+where
+  S: AsRef<SqlitePool> + Debug,
+{
+  // Vérifier si la table topk existe
+  let table_exists: bool = sqlx::query_scalar!(
+    r#"SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='topk') as "exists!: bool""#
   )
-  .bind(start_date)
-  .bind(end_date)
-  .bind(count)
-  .fetch_all(conn)
+  .fetch_one(pool.as_ref())
   .await?;
 
-  Ok(vec![("lorem".to_string(), 42)])
+  if !table_exists {
+    return Ok(Vec::new());
+  }
+
+  let rows = sqlx::query!(
+    r#"
+    SELECT hashtag as "hashtag!: String", retweet as "count!: i32"
+    FROM topk
+    WHERE project_id = ? AND user_id = ? AND month = ? AND year = ?
+    ORDER BY count DESC
+    "#,
+    project_id,
+    user_id,
+    month,
+    year
+  )
+  .fetch_all(pool.as_ref())
+  .await?;
+
+  Ok(rows
+    .into_iter()
+    .map(|row| Hashtag {
+      hashtag: row.hashtag,
+      count: row.count as i64,
+    })
+    .collect())
 }
 
-#[derive(Debug)]
-pub struct _Hashtag {
-  pub hashtag: String,
-  pub count: i64,
+#[tracing::instrument]
+pub async fn search_topk_hashtags<S>(
+  pool: S,
+  project_id: String,
+  user_id: &String,
+  query: &String,
+) -> sqlx::Result<Vec<Hashtag>>
+where
+  S: AsRef<SqlitePool> + Debug,
+{
+  // Vérifier si la table hashtag existe
+  let table_exists: bool = sqlx::query_scalar!(
+    r#"SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='hashtag') as "exists!: bool""#
+  )
+  .fetch_one(pool.as_ref())
+  .await?;
+
+  if !table_exists {
+    return Ok(Vec::new());
+  }
+
+  let rows = sqlx::query_as!(
+    _Hashtag,
+    r#"
+    SELECT key as "hashtag!: String", doc_count as "count!: i64"
+    FROM hashtag
+    WHERE project_id = ? AND user_id = ? AND key LIKE ?
+    ORDER BY doc_count DESC
+    "#,
+    project_id,
+    user_id,
+    format!("%{}%", query)
+  )
+  .fetch_all(pool.as_ref())
+  .await?;
+
+  Ok(rows.into_iter().map(|row| row.into()).collect())
 }
 
-#[derive(Debug, Default)]
+#[tracing::instrument]
+pub async fn search_topk_hashtags_cooccurence<S>(
+  pool: S,
+  project_id: String,
+  user_id: &String,
+  query: &String,
+) -> sqlx::Result<Vec<HashtagCooccurence>>
+where
+  S: AsRef<SqlitePool> + Debug,
+{
+  // Vérifier si la table hashtag_cooccurence existe
+  let table_exists: bool = sqlx::query_scalar!(
+    r#"SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='hashtag_cooccurence') as "exists!: bool""#
+  )
+  .fetch_one(pool.as_ref())
+  .await?;
+
+  if !table_exists {
+    return Ok(Vec::new());
+  }
+
+  let rows = sqlx::query_as!(
+    HashtagCooccurence,
+    r#"
+    SELECT 
+      key as "hashtag!: String",
+      doc_count as "count!: i64",
+      cooccurence as "cooccurence!: Json<Vec<String>>"
+    FROM hashtag_cooccurence
+    WHERE project_id = ? AND user_id = ? AND key LIKE ?
+    ORDER BY doc_count DESC
+    "#,
+    project_id,
+    user_id,
+    format!("%{}%", query)
+  )
+  .fetch_all(pool.as_ref())
+  .await?;
+
+  Ok(rows)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Hashtag {
   pub hashtag: String,
   pub count: i64,
-  pub available: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct HashtagCooccurence {
-  pub hashtag1: String,
-  pub hashtag2: String,
+  pub hashtag: String,
+  pub count: i64,
+  pub cooccurence: Json<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct _Hashtag {
+  pub hashtag: String,
   pub count: i64,
 }
 
 impl From<_Hashtag> for Hashtag {
-  fn from(_Hashtag { hashtag, count }: _Hashtag) -> Self {
+  fn from(h: _Hashtag) -> Self {
     Self {
-      hashtag,
-      count,
-      ..Default::default()
+      hashtag: h.hashtag,
+      count: h.count,
     }
   }
 }
@@ -102,40 +196,49 @@ impl ToString for HashtagQuery {
   }
 }
 
-pub async fn search_topk_hashtags<S: AsRef<SqlitePool>>(
-  conn: S,
-  query: HashtagQuery,
-) -> Result<Vec<Hashtag>, DbTwitterError> {
-  let query = format!("%{}%", query.0);
-  let rows = sqlx::query_as!(
-    _Hashtag,
-    r#"
-SELECT key as "hashtag", doc_count as "count"
-FROM hashtag
-WHERE key like $1
-ORDER BY doc_count DESC
-LIMIT 10 "#,
-    query
-  )
-  .fetch_all(conn.as_ref())
-  .await?;
+#[instrument]
+pub async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS topk (
+            project_id TEXT,
+            user_id TEXT,
+            month INTEGER,
+            year INTEGER,
+            hashtag TEXT,
+            retweet INTEGER
+        );
+        "#,
+    )
+    .execute(pool)
+    .await?;
 
-  Ok(rows.into_iter().map(Into::into).collect())
-}
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS hashtag (
+            project_id TEXT,
+            user_id TEXT,
+            key TEXT,
+            doc_count INTEGER
+        );
+        "#,
+    )
+    .execute(pool)
+    .await?;
 
-pub async fn search_topk_hashtags_cooccurence<S: AsRef<SqlitePool>>(
-  conn: S,
-) -> Result<Vec<HashtagCooccurence>, DbTwitterError> {
-  let rows = sqlx::query_as!(
-    HashtagCooccurence,
-    r#"
-SELECT hashtag1, hashtag2, count
-FROM hashtag_cooccurence
-ORDER BY count DESC
-LIMIT 10 "#
-  )
-  .fetch_all(conn.as_ref())
-  .await?;
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS hashtag_cooccurence (
+            project_id TEXT,
+            user_id TEXT,
+            key TEXT,
+            doc_count INTEGER,
+            cooccurence JSON
+        );
+        "#,
+    )
+    .execute(pool)
+    .await?;
 
-  Ok(rows.into_iter().map(Into::into).collect())
+    Ok(())
 }

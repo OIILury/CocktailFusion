@@ -17,4 +17,4 @@ thiserror = "1"
 # todo-or-die = { version = "0.1.2", features = ["time"] }
 tracing = "0.1"
 cocktail-twitter-data = { path = "../cocktail-twitter-data" }
-sqlx = { workspace = true, features = ["sqlite", "uuid", "json", "offline", "chrono"] }
+sqlx = { workspace = true, features = ["sqlite", "uuid", "json", "runtime-tokio-rustls", "chrono"] }

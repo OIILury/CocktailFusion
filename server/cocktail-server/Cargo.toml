@@ -11,8 +11,8 @@ tantivy = { version = "0.18.0" }
 regex = "1"
 anyhow = "1.0.56"
 askama = { version = "0.11.0", features = ["serde-json"] }
-axum = { version = "0.6.0-rc.1", features = ["headers", "multipart"] }
-axum-extra = { version = "0.4.0-rc.1", features = ["typed-routing"] }
+axum = { version = "0.8", features = ["multipart"] }
+axum-extra = { version = "0.4", features = ["typed-routing"] }
 chrono = { workspace = true }
 chronoutil = { workspace = true }
 # clap = { version = "3.1.10", features = ["derive", "env"] }
@@ -33,7 +33,7 @@ sqlx = { workspace = true, features = ["sqlite", "postgres", "runtime-tokio-rust
 thiserror = "1"
 # todo-or-die = { version = "0.1.2", features = ["time"] }
 tokio = { workspace = true }
-tower-http = { version = "0.2.0", features = ["fs", "compression-full", "trace"] }
+tower-http = { version = "0.6", features = ["fs", "compression-full", "trace"] }
 tracing = "0.1"
 ulid = "1.0.0"
 # tracing-subscriber = { version = "0.3.14", features = ["env-filter"] }

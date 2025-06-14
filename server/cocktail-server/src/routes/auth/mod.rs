@@ -40,6 +40,10 @@ where
 #[derive(Debug, Serialize)]
 pub struct RegistrationContext {
   pub data: SelfServiceRegistrationFlow,
+  pub isLogin: bool,
+  pub pageTitle: String,
+  pub niveau: Option<i64>,
+  pub tweets: Vec<Tweet>,
 }
 
 #[tracing::instrument]
@@ -59,33 +63,23 @@ pub async fn auth_registration(
     .await
     .map_err(|e| WebError::WTFError(e.to_string()))?;
 
-    let content;
-    if res.ui.messages.is_none()
-      && res
-        .ui
-        .nodes
-        .iter()
-        .filter_map(|n| {
-          if n.messages.len() > 0 {
-            return Some(true);
-          }
+    let directory_path = std::env::var("DIRECTORY_PATH")?;
+    let tweets = fts::search_tweets(
+      &fts::Index::open_in_dir(directory_path)?,
+      "text:lubrizol",
+      &Some(OrderBy::RetweetCount),
+    )?;
 
-          None
-        })
-        .collect::<Vec<bool>>()
-        .len()
-        == 0
-    {
-      let data = RegistrationContext { data: res };
-      content = handlebars_registry
-        .render("registration_popin.html", &data)
-        .map_err(|e| WebError::WTFError(e.to_string()))?;
-    } else {
-      let data = RegistrationContext { data: res };
-      content = handlebars_registry
-        .render("registration.html", &data)
-        .map_err(|e| WebError::WTFError(e.to_string()))?;
-    }
+    let data = RegistrationContext { 
+      data: res,
+      isLogin: false,
+      pageTitle: "Inscription".to_string(),
+      niveau: None,
+      tweets,
+    };
+    let content = handlebars_registry
+      .render("auth.html", &data)
+      .map_err(|e| WebError::WTFError(e.to_string()))?;
 
     Ok(Html(content).into_response())
   } else {
@@ -101,6 +95,9 @@ pub async fn auth_registration(
 pub struct LoginContext {
   pub data: SelfServiceLoginFlow,
   pub tweets: Vec<Tweet>,
+  pub isLogin: bool,
+  pub pageTitle: String,
+  pub niveau: Option<i64>,
 }
 
 pub async fn auth_login(
@@ -125,9 +122,15 @@ pub async fn auth_login(
       "text:lubrizol",
       &Some(OrderBy::RetweetCount),
     )?;
-    let data = LoginContext { data: res, tweets };
+    let data = LoginContext { 
+      data: res, 
+      tweets,
+      isLogin: true,
+      pageTitle: "Connexion".to_string(),
+      niveau: None,
+    };
     let content = handlebars_registry
-      .render("login.html", &data)
+      .render("auth.html", &data)
       .map_err(|e| WebError::WTFError(e.to_string()))?;
 
     Ok(Html(content).into_response())

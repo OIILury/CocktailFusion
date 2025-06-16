@@ -57,6 +57,7 @@ pub mod error;
 mod helpers;
 mod models;
 mod routes;
+pub mod utils;
 
 // const PATH_TEMPLATES: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth");
 // const PATH_PARTIALS: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth/partials");

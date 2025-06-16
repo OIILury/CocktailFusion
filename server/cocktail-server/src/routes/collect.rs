@@ -20,8 +20,8 @@ const BLUESKY_AUTH_URL: &str = "https://bsky.social/xrpc/com.atproto.server.crea
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthResponse {
-    accessJwt: String,
-    refreshJwt: String,
+    access_jwt: String,
+    refresh_jwt: String,
     handle: String,
     did: String,
 }
@@ -39,11 +39,11 @@ struct Post {
     cid: String,
     author: Author,
     record: PostRecord,
-    replyCount: i64,
-    repostCount: i64,
-    likeCount: i64,
-    quoteCount: i64,
-    indexedAt: String,
+    reply_count: i64,
+    repost_count: i64,
+    like_count: i64,
+    quote_count: i64,
+    indexed_at: String,
     #[serde(default)]
     embed: Option<serde_json::Value>,
 }
@@ -53,7 +53,7 @@ struct PostRecord {
     #[serde(rename = "$type")]
     type_field: String,
     text: String,
-    createdAt: String,
+    created_at: String,
     #[serde(default)]
     langs: Vec<String>,
     #[serde(default)]
@@ -146,7 +146,7 @@ impl BlueskyCollector {
 
         // Create client with JWT token
         let mut headers = HeaderMap::new();
-        let auth = format!("Bearer {}", auth_response.accessJwt);
+        let auth = format!("Bearer {}", auth_response.access_jwt);
         headers.insert(
             AUTHORIZATION, 
             HeaderValue::from_str(&auth).map_err(|e| WebError::WTFError(format!("Header value error: {}", e)))?
@@ -251,7 +251,7 @@ impl BlueskyCollector {
     }
 
     async fn save_post_to_db(&self, post: &Post) -> Result<(), WebError> {
-        let created_at = DateTime::parse_from_rfc3339(&post.indexedAt)
+        let created_at = DateTime::parse_from_rfc3339(&post.indexed_at)
             .map_err(|e| WebError::WTFError(format!("Date parse error: {}", e)))?
             .with_timezone(&Utc);
             
@@ -267,9 +267,9 @@ impl BlueskyCollector {
             &post.record.text,
             "Bluesky",
             lang,
-            post.repostCount,
-            post.replyCount,
-            post.quoteCount
+            post.repost_count,
+            post.reply_count,
+            post.quote_count
         ).await?;
         
         // Handle replies

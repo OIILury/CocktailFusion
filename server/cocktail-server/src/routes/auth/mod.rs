@@ -40,8 +40,8 @@ where
 #[derive(Debug, Serialize)]
 pub struct RegistrationContext {
   pub data: SelfServiceRegistrationFlow,
-  pub isLogin: bool,
-  pub pageTitle: String,
+  pub is_login: bool,
+  pub page_title: String,
   pub niveau: Option<i64>,
   pub tweets: Vec<Tweet>,
 }
@@ -72,8 +72,8 @@ pub async fn auth_registration(
 
     let data = RegistrationContext { 
       data: res,
-      isLogin: false,
-      pageTitle: "Inscription".to_string(),
+      is_login: false,
+      page_title: "Inscription".to_string(),
       niveau: None,
       tweets,
     };
@@ -95,8 +95,8 @@ pub async fn auth_registration(
 pub struct LoginContext {
   pub data: SelfServiceLoginFlow,
   pub tweets: Vec<Tweet>,
-  pub isLogin: bool,
-  pub pageTitle: String,
+  pub is_login: bool,
+  pub page_title: String,
   pub niveau: Option<i64>,
 }
 
@@ -125,8 +125,8 @@ pub async fn auth_login(
     let data = LoginContext { 
       data: res, 
       tweets,
-      isLogin: true,
-      pageTitle: "Connexion".to_string(),
+      is_login: true,
+      page_title: "Connexion".to_string(),
       niveau: None,
     };
     let content = handlebars_registry

@@ -25,8 +25,8 @@ pub mod automation;
 pub struct Context {
   pub tweets: Vec<Tweet>,
   pub niveau: i64,
-  pub isLogin: bool,
-  pub pageTitle: String,
+  pub is_login: bool,
+  pub page_title: String,
   pub data: Option<serde_json::Value>,
 }
 
@@ -64,8 +64,8 @@ pub async fn home(
     let data = Context { 
       tweets, 
       niveau,
-      isLogin: true,
-      pageTitle: "Accueil".to_string(),
+      is_login: true,
+      page_title: "Accueil".to_string(),
       data: None,
     };
     let content = handlebars_registry

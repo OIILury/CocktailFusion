@@ -61,109 +61,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="import-instructions">
-                    <div id="singleFileInstructions" class="instruction-content">
-                        <div class="instruction-header">
-                            <h6>Instructions pour un fichier unique</h6>
-                            <span class="toggle-icon">▼</span>
-                        </div>
-                        <div class="instruction-body">
-                            <p>Votre fichier CSV doit contenir les colonnes suivantes :</p>
-                            
-                            <div class="instruction-section">
-                                <h6>Informations principales du tweet</h6>
-                                <ul>
-                                    <li><strong>id</strong> : Identifiant unique du tweet</li>
-                                    <li><strong>created_at</strong> : Date de création <em>(format: YYYY-MM-DD HH:MM:SS)</em></li>
-                                    <li><strong>published_time</strong> : Date de publication <em>Timestamp Unix</em></li>
-                                    <li><strong>user_id</strong> : Identifiant unique de l'utilisateur</li>
-                                    <li><strong>user_name</strong> : Nom complet de l'utilisateur</li>
-                                    <li><strong>user_screen_name</strong> : Nom d'utilisateur <em>@username</em></li>
-                                    <li><strong>text</strong> : Contenu du tweet</li>
-                                    <li><strong>source</strong> : Source du tweet <em>(Twitter ou Bluesky)</em></li>
-                                    <li><strong>language</strong> : Langue du tweet</li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Localisation <em>(optionnel)</em></h6>
-                                <ul>
-                                    <li><strong>coordinates_longitude</strong> : Longitude</li>
-                                    <li><strong>coordinates_latitude</strong> : Latitude</li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Métriques et statistiques</h6>
-                                <ul>
-                                    <li><strong>possibly_sensitive</strong> : Contenu sensible <em>(true/false)</em></li>
-                                    <li><strong>retweet_count</strong> : Nombre de retweets</li>
-                                    <li><strong>reply_count</strong> : Nombre de réponses</li>
-                                    <li><strong>quote_count</strong> : Nombre de citations</li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Contenu enrichi</h6>
-                                <ul>
-                                    <li><strong>hashtags</strong> : Liste des hashtags <em>séparés par des virgules</em></li>
-                                    <li><strong>urls</strong> : Liste des URLs <em>séparées par des virgules</em></li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Relations avec d'autres tweets</h6>
-                                <ul>
-                                    <li><strong>retweeted_tweet_id</strong> : ID du tweet retweeté <em>si applicable</em></li>
-                                    <li><strong>in_reply_to_tweet_id</strong> : ID du tweet auquel on répond <em>si applicable</em></li>
-                                    <li><strong>quoted_tweet_id</strong> : ID du tweet cité <em>si applicable</em></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="multipleFilesInstructions" class="instruction-content" style="display: none;">
-                        <div class="instruction-header">
-                            <h6>Instructions pour fichiers multiples</h6>
-                            <span class="toggle-icon">▼</span>
-                        </div>
-                        <div class="instruction-body">
-                            <p>Créez un fichier CSV séparé pour chaque type de données :</p>
-                            
-                            <div class="instruction-section">
-                                <h6>Fichier principal</h6>
-                                <ul>
-                                    <li><strong>tweets.csv</strong> : <em>Contient les tweets avec les colonnes :</em>
-                                        <ul class="nested-list">
-                                            <li><strong>id</strong>, <strong>created_at</strong>, <strong>published_time</strong></li>
-                                            <li><strong>user_id</strong>, <strong>user_name</strong>, <strong>user_screen_name</strong></li>
-                                            <li><strong>text</strong>, <strong>source</strong>, <strong>language</strong></li>
-                                            <li><strong>coordinates_longitude</strong>, <strong>coordinates_latitude</strong></li>
-                                            <li><strong>possibly_sensitive</strong></li>
-                                            <li><strong>retweet_count</strong>, <strong>reply_count</strong>, <strong>quote_count</strong></li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Fichiers de contenu enrichi</h6>
-                                <ul>
-                                    <li><strong>hashtags.csv</strong> : <em>Contient les hashtags avec les colonnes : </em><strong>tweet_id</strong>, <strong>hashtag</strong></li>
-                                    <li><strong>urls.csv</strong> : <em>Contient les URLs avec les colonnes : </em><strong>tweet_id</strong>, <strong>url</strong></li>
-                                </ul>
-                            </div>
-
-                            <div class="instruction-section">
-                                <h6>Fichiers de relations</h6>
-                                <ul>
-                                    <li><strong>retweets.csv</strong> : <em>Contient les retweets avec la colonne : </em><strong>retweeted_tweet_id</strong></li>
-                                    <li><strong>replies.csv</strong> : <em>Contient les réponses avec la colonne : </em><strong>in_reply_to_tweet_id</strong></li>
-                                    <li><strong>quotes.csv</strong> : <em>Contient les citations avec la colonne : </em><strong>quoted_tweet_id</strong></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Nom de l'importation -->
@@ -175,11 +72,13 @@
             <!-- Zone de dépôt de fichiers -->
             <div class="file-drop-zone" id="fileDropZone">
                 <div class="file-drop-content">
-                    <span class="icon-upload"></span>
+                    <span class="icon-upload">📁</span>
                     <p id="dropZoneText">Glissez et déposez votre fichier CSV ici</p>
                     <p class="file-drop-hint">ou</p>
-                    <label for="fileInput" class="file-input-label">Parcourir les fichiers</label>
-                    <input type="file" id="fileInput" accept=".csv" multiple style="display: none;">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" accept=".csv" multiple style="display: none;">
+                        <button type="button" class="file-input-label" onclick="document.getElementById('fileInput').click()">Parcourir les fichiers</button>
+                    </div>
                 </div>
             </div>
 
@@ -187,17 +86,22 @@
             <div class="selected-files" id="selectedFiles">
                 <!-- Les fichiers seront affichés ici -->
             </div>
+
+            <!-- Zone de prévisualisation -->
+            <div id="previewContainer" class="preview-container">
+                <!-- La prévisualisation sera affichée ici -->
+            </div>
     
             <!-- Sélection des réseaux sociaux -->
             <div class="social-options">
                 <label>Réseaux sociaux</label>
                 <div class="checkbox-group">
                     <div class="checkbox-option">
-                        <input type="checkbox" id="twitterCheck" checked>
+                        <input type="checkbox" id="twitterCheck">
                         <label for="twitterCheck">Twitter</label>
                     </div>
                     <div class="checkbox-option">
-                        <input type="checkbox" id="blueskyCheck" checked>
+                        <input type="checkbox" id="blueskyCheck">
                         <label for="blueskyCheck">Bluesky</label>
                     </div>
                 </div>
@@ -212,36 +116,221 @@
   {% include "footer.html" %}
 
   <style>
-    .instruction-header {
+    /* Styles pour les cartes de mode d'importation */
+    .import-mode-cards {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .mode-card {
+        flex: 1;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
         cursor: pointer;
-        padding: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .mode-card:hover {
+        border-color: #e63429;
+        background-color: rgba(230, 52, 41, 0.05);
+    }
+
+    .mode-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .mode-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .mode-content h5 {
+        margin: 0.5rem 0;
+        color: #333;
+    }
+
+    .mode-content p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    /* Styles pour la zone de dépôt */
+    .file-drop-zone {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        margin: 1rem 0;
+        transition: all 0.3s ease;
+    }
+
+    .file-drop-zone.dragover {
+        border-color: #e63429;
+        background-color: rgba(230, 52, 41, 0.05);
+    }
+
+    .file-drop-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .icon-upload {
+        font-size: 2rem;
+        color: #666;
+    }
+
+    .file-drop-hint {
+        color: #666;
+        margin: 0.5rem 0;
+    }
+
+    .file-input-wrapper {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .file-input-label {
+        background-color: #e63429;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .file-input-label:hover {
+        background-color: #d42e24;
+    }
+
+    /* Styles pour les fichiers sélectionnés */
+    .selected-files {
+        margin: 1rem 0;
+    }
+
+    .selected-file {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
         background-color: #f5f5f5;
         border-radius: 4px;
-        margin-bottom: 10px;
+        margin-bottom: 0.5rem;
     }
 
-    .instruction-header:hover {
-        background-color: #e9e9e9;
+    .file-name {
+        flex-grow: 1;
+        margin-right: 1rem;
     }
 
-    .instruction-body {
-        display: none;
-        padding: 10px;
+    .file-size {
+        color: #666;
+        margin-right: 1rem;
     }
 
-    .instruction-body.active {
-        display: block;
+    .remove-file {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
     }
 
-    .toggle-icon {
-        transition: transform 0.3s ease;
+    .remove-file:hover {
+        color: #e63429;
     }
 
-    .instruction-header.active .toggle-icon {
-        transform: rotate(180deg);
+    /* Styles pour la prévisualisation */
+    .preview-container {
+        margin: 1rem 0;
+    }
+
+    .preview-section {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .preview-info {
+        margin-bottom: 1rem;
+    }
+
+    .preview-info p {
+        margin: 0.5rem 0;
+        color: #666;
+    }
+
+    .preview-table-container {
+        overflow-x: auto;
+        margin: 1rem 0;
+    }
+
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+    }
+
+    .preview-table th,
+    .preview-table td {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .preview-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
+
+    .preview-issues {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #fff3f3;
+        border-radius: 4px;
+    }
+
+    .preview-issues h5 {
+        color: #e63429;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .issue-item {
+        margin: 0.5rem 0;
+        padding: 0.5rem;
+        border-radius: 4px;
+    }
+
+    .issue-item.missingvalue {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .issue-item.invaliddateformat {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .issue-item.invalidnumber {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .issue-item.specialcharacters {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+    .issue-item.inconsistentdatatype {
+        background-color: #cce5ff;
+        color: #004085;
     }
 
     /* Styles pour les notifications */
@@ -336,364 +425,59 @@
     .notification-close:hover {
         opacity: 1;
     }
+
+    /* Styles pour les options sociales */
+    .social-options {
+        margin: 1rem 0;
+    }
+
+    .checkbox-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .checkbox-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checkbox-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+    }
+
+    .checkbox-option label {
+        cursor: pointer;
+            }
+
+    /* Styles pour le bouton d'importation */
+    .primary-button {
+        width: 100%;
+        padding: 1rem;
+        background-color: #e63429;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .primary-button:hover {
+        background-color: #d42e24;
+    }
+
+    .primary-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+                            }
   </style>
 
   <div class="notification-container" id="notificationContainer"></div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Initialisation de la page d\'importation');
-        const fileDropZone = document.getElementById('fileDropZone');
-        const fileInput = document.getElementById('fileInput');
-        const selectedFiles = document.getElementById('selectedFiles');
-        const startImport = document.getElementById('startImport');
-        const singleFileMode = document.getElementById('singleFileMode');
-        const multipleFilesMode = document.getElementById('multipleFilesMode');
-        const singleFileCard = document.getElementById('singleFileCard');
-        const multipleFilesCard = document.getElementById('multipleFilesCard');
-        const dropZoneText = document.getElementById('dropZoneText');
-        const importNameInput = document.getElementById('importName');
-        let currentFiles = [];
-
-        // Gestion du mode d'importation avec les cartes
-        singleFileCard.addEventListener('click', () => {
-            singleFileMode.checked = true;
-            dropZoneText.textContent = 'Glissez et déposez votre fichier CSV ici';
-            fileInput.removeAttribute('multiple');
-            currentFiles = [];
-            selectedFiles.innerHTML = '';
-            updateCardStyles();
-            updateInstructions();
-        });
-
-        multipleFilesCard.addEventListener('click', () => {
-            multipleFilesMode.checked = true;
-            dropZoneText.textContent = 'Glissez et déposez vos fichiers CSV ici';
-            fileInput.setAttribute('multiple', '');
-            currentFiles = [];
-            selectedFiles.innerHTML = '';
-            updateCardStyles();
-            updateInstructions();
-        });
-
-        function updateCardStyles() {
-            singleFileCard.style.borderColor = singleFileMode.checked ? '#e63429' : '#ddd';
-            multipleFilesCard.style.borderColor = multipleFilesMode.checked ? '#e63429' : '#ddd';
-        }
-
-        function updateInstructions() {
-            const singleInstructions = document.getElementById('singleFileInstructions');
-            const multipleInstructions = document.getElementById('multipleFilesInstructions');
-            
-            if (singleFileMode.checked) {
-                singleInstructions.style.display = 'block';
-                multipleInstructions.style.display = 'none';
-            } else {
-                singleInstructions.style.display = 'none';
-                multipleInstructions.style.display = 'block';
-            }
-        }
-
-        // Initialiser les styles des cartes et les instructions
-        updateCardStyles();
-        updateInstructions();
-
-        // Gestion du drag and drop
-        fileDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileDropZone.classList.add('dragover');
-            console.log('Fichier(s) survolant la zone de dépôt');
-        });
-
-        fileDropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileDropZone.classList.remove('dragover');
-            console.log('Fichier(s) quittant la zone de dépôt');
-        });
-
-        fileDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileDropZone.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            console.log('Fichiers déposés:', files.map(f => f.name));
-            handleFiles(files);
-        });
-
-        // Gestion du clic sur le bouton "Parcourir"
-        fileInput.addEventListener('change', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const files = Array.from(e.target.files);
-            console.log('Fichiers sélectionnés:', files.map(f => f.name));
-            handleFiles(files);
-        });
-
-        // Gestion des fichiers sélectionnés
-        function handleFiles(files) {
-            const validFiles = files.filter(file => 
-                file.type === 'text/csv' || 
-                file.type === 'application/vnd.ms-excel' ||
-                file.name.toLowerCase().endsWith('.csv')
-            );
-
-            if (validFiles.length === 0) {
-                console.error('Aucun fichier CSV valide');
-                alert('Veuillez sélectionner au moins un fichier CSV valide');
-                return;
-            }
-
-            if (singleFileMode.checked && validFiles.length > 1) {
-                console.error('Trop de fichiers pour le mode fichier unique');
-                alert('Veuillez sélectionner un seul fichier en mode fichier unique');
-                return;
-            }
-
-            currentFiles = validFiles;
-            
-            // Mettre à jour le nom de l'importation si en mode fichier unique
-            if (singleFileMode.checked && validFiles.length === 1) {
-                const fileNameWithoutExtension = validFiles[0].name.replace(/\.csv$/i, '');
-                importNameInput.value = fileNameWithoutExtension;
-            }
-            
-            // Afficher les fichiers sélectionnés
-            selectedFiles.innerHTML = validFiles.map(file => `
-                <div class="selected-file">
-                    <span class="file-name">${file.name}</span>
-                    <span class="file-size">${formatFileSize(file.size)}</span>
-                    <button class="remove-file" data-filename="${file.name}">×</button>
-                </div>
-            `).join('');
-
-            // Ajouter les gestionnaires d'événements pour les boutons de suppression
-            document.querySelectorAll('.remove-file').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const fileName = e.target.dataset.filename;
-                    currentFiles = currentFiles.filter(file => file.name !== fileName);
-                    if (currentFiles.length === 0) {
-                        importNameInput.value = '';
-                    }
-                    handleFiles(currentFiles);
-                });
-            });
-        }
-
-        // Formatage de la taille du fichier
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // Système de notifications
-        function showNotification(type, title, message, progress = null, persistent = false) {
-            const container = document.getElementById('notificationContainer');
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
-            let icon = '';
-            switch(type) {
-                case 'success':
-                    icon = '✅';
-                    break;
-                case 'error':
-                    icon = '❌';
-                    break;
-                case 'info':
-                    icon = 'ℹ️';
-                    break;
-                case 'warning':
-                    icon = '⚠️';
-                    break;
-            }
-
-            notification.innerHTML = `
-                <span class="notification-icon">${icon}</span>
-                <div class="notification-content">
-                    <div class="notification-title">${title}</div>
-                    <div class="notification-message">${message}</div>
-                    ${progress !== null ? `
-                        <div class="notification-progress">
-                            <div class="notification-progress-bar" style="width: ${progress}%"></div>
-                        </div>
-                        <div class="notification-status">${progress}%</div>
-                    ` : ''}
-                </div>
-                ${!persistent ? `
-                    <span class="notification-close">✕</span>
-                ` : ''}
-            `;
-
-            container.appendChild(notification);
-            
-            // Animation d'entrée
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-
-            // Gestion de la fermeture manuelle
-            const closeButton = notification.querySelector('.notification-close');
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        container.removeChild(notification);
-                    }, 300);
-                });
-            }
-
-            // Suppression automatique après 5 secondes si non persistante
-            if (!persistent) {
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        if (container.contains(notification)) {
-                            container.removeChild(notification);
-                        }
-                    }, 300);
-                }, 5000);
-            }
-
-            return notification;
-        }
-
-        // Fonction pour mettre à jour la notification de progression
-        function updateProgressNotification(notification, progress, message) {
-            const progressBar = notification.querySelector('.notification-progress-bar');
-            const statusText = notification.querySelector('.notification-status');
-            const messageElement = notification.querySelector('.notification-message');
-            
-            if (progressBar) progressBar.style.width = `${progress}%`;
-            if (statusText) statusText.textContent = `${progress}%`;
-            if (messageElement) messageElement.textContent = message;
-        }
-
-        // Modification du gestionnaire d'importation
-        startImport.addEventListener('click', async () => {
-            console.log('Début de l\'importation');
-            
-            if (currentFiles.length === 0) {
-                showNotification('error', 'Erreur', 'Veuillez sélectionner au moins un fichier CSV');
-                return;
-            }
-
-            const importName = document.getElementById('importName').value;
-            if (!importName) {
-                showNotification('error', 'Erreur', 'Veuillez entrer un nom pour l\'importation');
-                return;
-            }
-
-            // Notification de début d'importation (persistante)
-            const progressNotification = showNotification(
-                'info',
-                'Importation en cours',
-                'Préparation de l\'importation...',
-                0,
-                true
-            );
-
-            const formData = new FormData();
-            currentFiles.forEach(file => {
-                formData.append('files', file);
-            });
-            formData.append('name', importName);
-            formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
-
-            try {
-                // Simuler la progression pendant l'importation
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 10;
-                        updateProgressNotification(
-                            progressNotification,
-                            progress,
-                            'Importation en cours...'
-                        );
-                    }
-                }, 1000);
-
-                const projectId = '{{ project_id }}';
-                const response = await fetch(`/api/import/csv?project_id=${projectId}`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                clearInterval(progressInterval);
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Mise à jour finale de la progression
-                    updateProgressNotification(
-                        progressNotification,
-                        100,
-                        'Importation terminée'
-                    );
-
-                    // Notification de succès
-                    showNotification(
-                        'success',
-                        'Importation réussie',
-                        `${result.rows_imported} lignes ont été importées avec succès.`
-                    );
-
-                    // Supprimer la notification de progression après un délai
-                    setTimeout(() => {
-                        progressNotification.classList.remove('show');
-                        setTimeout(() => {
-                            if (progressNotification.parentNode) {
-                                progressNotification.parentNode.removeChild(progressNotification);
-                            }
-                        }, 300);
-                    }, 2000);
-
-                    // Réinitialiser le formulaire
-                    document.getElementById('importName').value = '';
-                    selectedFiles.innerHTML = '';
-                    currentFiles = [];
-                } else {
-                    updateProgressNotification(
-                        progressNotification,
-                        0,
-                        'Erreur lors de l\'importation'
-                    );
-                    showNotification(
-                        'error',
-                        'Erreur d\'importation',
-                        result.message || 'Une erreur est survenue lors de l\'importation'
-                    );
-                }
-            } catch (error) {
-                console.error('Erreur lors de l\'importation:', error);
-                updateProgressNotification(
-                    progressNotification,
-                    0,
-                    'Erreur lors de l\'importation'
-                );
-                showNotification(
-                    'error',
-                    'Erreur',
-                    'Une erreur est survenue lors de l\'importation'
-                );
-            }
-        });
-
-        // Gestion des blocs d'instructions dépliables
-        document.querySelectorAll('.instruction-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const body = header.nextElementSibling;
-                header.classList.toggle('active');
-                body.classList.toggle('active');
-            });
-        });
-    });
-  </script>
+  <script src="/static/js/import.js"></script>
 </body>
 
 </html>

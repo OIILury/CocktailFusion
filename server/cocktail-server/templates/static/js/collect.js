@@ -214,12 +214,52 @@ function initCollect() {
             startCollectBtn.textContent = 'Collecte en cours...';
             
             const requestUrl = `/projets/${projectId}/collect/start`;
+            // Get date range values
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // Validate date range
+            if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                alert('La date de début doit être antérieure à la date de fin');
+                return;
+            }
+            
+            // Info: La détection automatique côté serveur choisira l'endpoint approprié
+            if (networks.includes('twitter') && startDate) {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                
+                if (new Date(startDate) < sevenDaysAgo) {
+                    console.log('Date historique détectée, le serveur utilisera automatiquement l\'endpoint /search/all si disponible');
+                }
+            }
+            
             const requestBody = {
                 name: collectName,
                 keywords: keywords,
                 networks: networks,
                 limit: parseInt(document.getElementById('tweetLimit').value) || 10
             };
+            
+            // Ajouter les dates seulement si elles sont spécifiées
+            if (startDate) {
+                requestBody.start_date = new Date(startDate).toISOString();
+            }
+            if (endDate) {
+                // Pour l'API Twitter, end_time doit être au minimum 10 secondes avant maintenant
+                const endDateTime = new Date(endDate);
+                const now = new Date();
+                
+                // Si la date de fin est trop proche de maintenant (moins de 30 secondes), 
+                // on la recule de 30 secondes pour être sûr
+                if (now.getTime() - endDateTime.getTime() < 30000) {
+                    const adjustedEndDate = new Date(now.getTime() - 30000); // 30 secondes avant maintenant
+                    requestBody.end_date = adjustedEndDate.toISOString();
+                    console.log('Date de fin ajustée pour l\'API Twitter:', adjustedEndDate.toISOString());
+                } else {
+                    requestBody.end_date = endDateTime.toISOString();
+                }
+            }
             
             console.log('URL de la requête:', requestUrl);
             console.log('Corps de la requête:', requestBody);
@@ -264,6 +304,30 @@ function initCollect() {
             startCollectBtn.textContent = 'Démarrer la collecte';
         }
     });
+    
+    // Add date range helper functionality
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput && endDateInput) {
+        // When start date is selected, auto-fill end date if empty
+        startDateInput.addEventListener('change', function() {
+            if (this.value && !endDateInput.value) {
+                // Set end date to now minus 30 seconds for Twitter API compatibility
+                const now = new Date();
+                now.setSeconds(now.getSeconds() - 30); // Recule de 30 secondes
+                
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                
+                endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                console.log('Auto-filled end date to 30 seconds ago:', endDateInput.value);
+            }
+        });
+    }
     
     console.log('Initialisation terminée');
 }

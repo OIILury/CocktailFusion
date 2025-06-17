@@ -1,2 +1,4 @@
 .DS_Store
 .docker
+server/tweets_collecte_2025_06_16.json.gz
+*.json

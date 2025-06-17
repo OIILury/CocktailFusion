@@ -1,4 +1,3 @@
-@@ -1,71 +1,65 @@
 {% extends "project_layout.html" %}
 {% block title %}Critères de collecte{% endblock %}
 {% block content %}
@@ -53,6 +52,23 @@
             <!-- Liste des mots-clés -->
             <div class="keywords-list" id="keywordsList">
                 <!-- Les mots-clés seront ajoutés ici dynamiquement -->
+            </div>
+
+            <!-- Plage de dates -->
+            <div class="date-range-group">
+                <label>Période de collecte</label>
+                <div class="date-inputs">
+                    <div class="date-input">
+                        <label for="startDate">Date de début</label>
+                        <input type="datetime-local" id="startDate">
+                    </div>
+                    <div class="date-input">
+                        <label for="endDate">Date de fin</label>
+                        <input type="datetime-local" id="endDate">
+                    </div>
+                </div>
+                <small class="date-help">Laissez vide pour collecter les tweets les plus récents</small>
+                <small class="date-warning">ℹ️ Twitter : Détection automatique API gratuite (7 jours) vs Pro (archive complète)</small>
             </div>
 
             <!-- Nombre de tweets à collecter -->

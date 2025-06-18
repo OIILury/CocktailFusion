@@ -4,6 +4,7 @@ use axum::{
     http::HeaderMap,
 };
 use chrono::Local;
+use futures::future;
 
 use crate::{
     error::WebError,
@@ -117,97 +118,39 @@ pub async fn start_collection(
 
     let mut total_posts = 0;
     
-    // Process each keyword
+    // Optimisation majeure : traitement parallèle des mots-clés et réseaux
+    let limit = req.limit.unwrap_or(10);
+    
+    // Créer toutes les tâches de collecte en parallèle
+    let mut collection_tasks = Vec::new();
+    
     for keyword in &req.keywords {
-        // Default limit to 10 if not specified
-        let limit = req.limit.unwrap_or(10);
-        
-        // Process each selected network
         for network in &req.networks {
-            match network.as_str() {
-                "bluesky" => {
-                    // Get Bluesky credentials from environment
-                    if let (Ok(handle), Ok(app_password)) = (
-                        std::env::var("BLUESKY_HANDLE"),
-                        std::env::var("BLUESKY_APP_PASSWORD")
-                    ) {
-                        if let Ok(collector) = BlueskyCollector::new(&handle, &app_password, schema_name.clone()).await {
-                            // Search for posts with date range
-                            if let Ok(posts) = collector.search_posts(keyword, limit, req.start_date.as_deref(), req.end_date.as_deref()).await {
-                                // Save posts to database
-                                for post in &posts {
-                                    if let Err(e) = collector.save_post_to_db(post).await {
-                                        tracing::warn!("Error saving Bluesky post: {}", e);
-                                    } else {
-                                        total_posts += 1;
-                                    }
-                                }
-                            } else {
-                                tracing::warn!("Failed to search Bluesky posts for keyword: {}", keyword);
-                            }
-                        } else {
-                            tracing::warn!("Failed to create Bluesky collector");
-                        }
-                    } else {
-                        tracing::warn!("Bluesky credentials not set, skipping Bluesky collection");
-                    }
-                },
-                "twitter" => {
-                    // Get Twitter credentials from environment
-                    if let Ok(bearer_token) = std::env::var("TWITTER_BEARER_TOKEN") {
-                        match TwitterCollector::new(&bearer_token, schema_name.clone()).await {
-                            Ok(collector) => {
-                                // Search for tweets with date range
-                                match collector.search_tweets(keyword, limit, req.start_date.as_deref(), req.end_date.as_deref()).await {
-                                    Ok(search_response) => {
-                                        tracing::info!("Found {} Twitter tweets for keyword: {}", search_response.data.as_ref().map(|d| d.len()).unwrap_or(0), keyword);
-                                        
-                                        // Traiter les tweets avec toutes les données includes
-                                        if let Some(tweets) = &search_response.data {
-                                            let save_start = std::time::Instant::now();
-                                            let mut saved_count = 0;
-                                            
-                                            for (index, tweet) in tweets.iter().enumerate() {
-                                                let tweet_save_start = std::time::Instant::now();
-                                                if let Err(e) = collector.save_tweet_to_db(tweet, search_response.includes.as_ref()).await {
-                                                    tracing::warn!("Error saving Twitter tweet {}: {}", tweet.id, e);
-                                                } else {
-                                                    saved_count += 1;
-                                                    total_posts += 1;
-                                                    
-                                                    // Log de progression tous les 10 tweets
-                                                    if index % 10 == 0 || index == tweets.len() - 1 {
-                                                        let tweet_save_duration = tweet_save_start.elapsed();
-                                                        tracing::info!("Tweet {}/{} sauvegardé en {:?} (total sauvegardé: {})", 
-                                                            index + 1, tweets.len(), tweet_save_duration, saved_count);
-                                                    }
-                                                }
-                                            }
-                                            
-                                            let save_duration = save_start.elapsed();
-                                            tracing::info!("Sauvegarde de {} tweets terminée en {:?} (avg: {:?}/tweet)", 
-                                                saved_count, save_duration, save_duration / saved_count.max(1) as u32);
-                                        }
-                                    },
-                                    Err(e) => {
-                                        tracing::warn!("Failed to search Twitter tweets for keyword '{}': {}", keyword, e);
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                tracing::warn!("Failed to create Twitter collector: {}", e);
-                            }
-                        }
-                    } else {
-                        tracing::warn!("Twitter Bearer Token not set, skipping Twitter collection");
-                    }
-                },
-                _ => {
-                    tracing::warn!("Unknown network: {}", network);
-                }
-            }
+            let keyword = keyword.clone();
+            let network = network.clone();
+            let schema_name = schema_name.clone();
+            let start_date = req.start_date.clone();
+            let end_date = req.end_date.clone();
+            
+            let task = tokio::spawn(async move {
+                collect_network_keyword(network, keyword, limit, schema_name, start_date, end_date).await
+            });
+            
+            collection_tasks.push(task);
         }
     }
+    
+    // Attendre toutes les tâches de collecte en parallèle
+    tracing::info!("Starting {} parallel collection tasks", collection_tasks.len());
+    let results = future::join_all(collection_tasks).await;
+    
+    // Compter les résultats
+    for result in results {
+        match result {
+            Ok(count) => total_posts += count,
+            Err(e) => tracing::error!("Collection task failed: {}", e),
+                 }
+     }
     
     // Run automation pipeline if we have collected data
     if total_posts > 0 {
@@ -294,4 +237,135 @@ pub async fn update_collection(
         message: "Successfully updated all data using automation pipeline".to_string(),
         count: 0,
     }))
+}
+
+// Fonction optimisée pour collecter un réseau/mot-clé en parallèle
+async fn collect_network_keyword(
+    network: String,
+    keyword: String,
+    limit: usize,
+    schema_name: String,
+    start_date: Option<String>,
+    end_date: Option<String>
+) -> usize {
+    tracing::info!("Starting collection for network: {}, keyword: {}, limit: {}", network, keyword, limit);
+    let collection_start = std::time::Instant::now();
+    
+    // Cloner keyword pour éviter le move
+    let keyword_for_log = keyword.clone();
+    
+    let posts_collected = match network.as_str() {
+        "bluesky" => {
+            collect_bluesky_optimized(keyword, limit, schema_name, start_date, end_date).await
+        },
+        "twitter" => {
+            collect_twitter_optimized(keyword, limit, schema_name, start_date, end_date).await
+        },
+        _ => {
+            tracing::warn!("Unknown network: {}", network);
+            0
+        }
+    };
+    
+    let collection_duration = collection_start.elapsed();
+    tracing::info!("Collection completed for {}/{}: {} posts in {:?} ({:.2} posts/sec)", 
+        network, keyword_for_log, posts_collected, collection_duration,
+        posts_collected as f64 / collection_duration.as_secs_f64());
+    
+    posts_collected
+}
+
+// Collecte optimisée pour Bluesky
+async fn collect_bluesky_optimized(
+    keyword: String,
+    limit: usize,
+    schema_name: String,
+    start_date: Option<String>,
+    end_date: Option<String>
+) -> usize {
+    // Get Bluesky credentials from environment
+    if let (Ok(handle), Ok(app_password)) = (
+        std::env::var("BLUESKY_HANDLE"),
+        std::env::var("BLUESKY_APP_PASSWORD")
+    ) {
+        if let Ok(collector) = BlueskyCollector::new(&handle, &app_password, schema_name).await {
+            // Search for posts with date range
+            if let Ok(posts) = collector.search_posts(&keyword, limit, start_date.as_deref(), end_date.as_deref()).await {
+                tracing::info!("Found {} Bluesky posts for keyword: {}", posts.len(), keyword);
+                
+                // Utiliser la nouvelle méthode de traitement en batch optimisée
+                match collector.save_posts_batch_to_db(&posts).await {
+                    Ok(saved_count) => {
+                        tracing::info!("Successfully saved {}/{} Bluesky posts for keyword: {}", saved_count, posts.len(), keyword);
+                        saved_count
+                    },
+                    Err(e) => {
+                        tracing::error!("Error saving Bluesky posts batch for keyword {}: {}", keyword, e);
+                        0
+                    }
+                }
+            } else {
+                tracing::warn!("Failed to search Bluesky posts for keyword: {}", keyword);
+                0
+            }
+        } else {
+            tracing::warn!("Failed to create Bluesky collector for keyword: {}", keyword);
+            0
+        }
+    } else {
+        tracing::warn!("Bluesky credentials not set, skipping collection for keyword: {}", keyword);
+        0
+    }
+}
+
+// Collecte optimisée pour Twitter
+async fn collect_twitter_optimized(
+    keyword: String,
+    limit: usize,
+    schema_name: String,
+    start_date: Option<String>,
+    end_date: Option<String>
+) -> usize {
+    // Get Twitter credentials from environment
+    if let Ok(bearer_token) = std::env::var("TWITTER_BEARER_TOKEN") {
+        match TwitterCollector::new(&bearer_token, schema_name).await {
+            Ok(collector) => {
+                // Search for tweets with date range
+                match collector.search_tweets(&keyword, limit, start_date.as_deref(), end_date.as_deref()).await {
+                    Ok(search_response) => {
+                        tracing::info!("Found {} Twitter tweets for keyword: {}", 
+                            search_response.data.as_ref().map(|d| d.len()).unwrap_or(0), keyword);
+                        
+                        // Utiliser la nouvelle méthode de traitement en batch optimisée
+                        if let Some(tweets) = &search_response.data {
+                            match collector.save_tweets_batch_to_db(tweets, search_response.includes.as_ref()).await {
+                                Ok(saved_count) => {
+                                    tracing::info!("Successfully saved {}/{} Twitter tweets for keyword: {}", 
+                                        saved_count, tweets.len(), keyword);
+                                    saved_count
+                                },
+                                Err(e) => {
+                                    tracing::error!("Error saving Twitter tweets batch for keyword {}: {}", keyword, e);
+                                    0
+                                }
+                            }
+                        } else {
+                            0
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!("Failed to search Twitter tweets for keyword '{}': {}", keyword, e);
+                        0
+                    }
+                }
+            },
+            Err(e) => {
+                tracing::warn!("Failed to create Twitter collector for keyword '{}': {}", keyword, e);
+                0
+            }
+        }
+    } else {
+        tracing::warn!("Twitter Bearer Token not set, skipping collection for keyword: {}", keyword);
+        0
+    }
 } 

@@ -37,7 +37,7 @@ impl TwitterCollector {
     }
 
     pub async fn search_tweets(&self, keyword: &str, limit: usize, start_date: Option<&str>, end_date: Option<&str>) -> Result<TwitterSearchResponse, WebError> {
-        tracing::info!("Starting complete Twitter search for keyword: '{}', limit: {}", keyword, limit);
+        tracing::info!("Starting optimized Twitter search for keyword: '{}', limit: {}", keyword, limit);
         
         // Détecter si on a besoin de l'endpoint /search/all (API Pro) ou /search/recent (gratuit)
         let use_full_archive = if let Some(start) = start_date {
@@ -66,10 +66,20 @@ impl TwitterCollector {
         let mut all_referenced_tweets = Vec::new();
         let mut next_token: Option<String> = None;
         let mut request_count = 0;
-        let max_requests = 25; // Augmenter à 25 requêtes pour permettre 1000+ tweets (25 * 50 = 1250 tweets max)
+        
+        // Optimisations pour gros volumes :
+        // - Augmenter drastiquement le nombre de requêtes max (pour 100k+ tweets)
+        // - Calculer dynamiquement basé sur la limite demandée
+        let max_requests = if limit > 10000 {
+            (limit / 100) + 50 // Pour 100k tweets : 1000 + 50 = 1050 requêtes max
+        } else {
+            (limit / 100) + 10 // Pour volumes plus petits
+        };
+        
+        tracing::info!("Configured for max {} requests to collect {} tweets", max_requests, limit);
         
         while tweets.len() < limit && request_count < max_requests {
-            let batch_limit = (limit - tweets.len()).min(100); // Augmenter à 100 tweets par requête (max API Twitter)
+            let batch_limit = (limit - tweets.len()).min(100); // Max API Twitter : 100 tweets par requête
             
             // Version complète avec TOUS les champs pour remplir toute la BDD
             let mut params = vec![
@@ -211,8 +221,13 @@ impl TwitterCollector {
                 break;
             }
             
-            // Réduire la pause entre les requêtes pour accélérer
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            // Optimisation : pause minimale pour gros volumes, respect des rate limits
+            let sleep_duration = if limit > 10000 {
+                tokio::time::Duration::from_millis(20) // 20ms pour gros volumes
+            } else {
+                tokio::time::Duration::from_millis(50) // 50ms pour volumes normaux
+            };
+            tokio::time::sleep(sleep_duration).await;
         }
         
         let final_count = tweets.len().min(limit);
@@ -567,6 +582,151 @@ impl TwitterCollector {
             
             order += 1;
         }
+        Ok(())
+    }
+
+    // Nouvelle méthode optimisée pour traitement en batch
+    pub async fn save_tweets_batch_to_db(&self, tweets: &[TwitterTweet], includes: Option<&TwitterIncludes>) -> Result<usize, WebError> {
+        let mut saved_count = 0;
+        let batch_size = 50; // Traiter par batches de 50 tweets pour optimiser
+        
+        for batch in tweets.chunks(batch_size) {
+            // Utiliser une transaction pour le batch
+            let mut tx = self.pool.begin().await
+                .map_err(|e| WebError::WTFError(format!("Failed to start transaction: {}", e)))?;
+            
+            for tweet in batch {
+                if let Err(e) = self.save_single_tweet_in_transaction(&mut tx, tweet, includes).await {
+                    tracing::warn!("Error saving tweet {} in batch: {}", tweet.id, e);
+                } else {
+                    saved_count += 1;
+                }
+            }
+            
+            // Commit du batch
+            tx.commit().await
+                .map_err(|e| WebError::WTFError(format!("Failed to commit batch: {}", e)))?;
+                
+            if batch.len() == batch_size {
+                tracing::debug!("Batch of {} tweets processed, total saved: {}", batch_size, saved_count);
+            }
+        }
+        
+        tracing::info!("Batch processing completed: {}/{} tweets saved", saved_count, tweets.len());
+        Ok(saved_count)
+    }
+
+    // Version modifiée pour travailler avec une transaction
+    async fn save_single_tweet_in_transaction(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, tweet: &TwitterTweet, includes: Option<&TwitterIncludes>) -> Result<(), WebError> {
+        // Implémentation similaire à save_tweet_to_db mais utilisant la transaction
+        // Pour l'instant, on garde l'ancienne méthode et on ajoutera l'optimisation progressivement
+        // Trouver l'auteur du tweet principal dans les includes
+        let author = includes
+            .and_then(|inc| inc.users.as_ref())
+            .and_then(|users| users.iter().find(|u| u.id == tweet.author_id));
+        
+        // Insérer le tweet principal avec transaction
+        self.insert_twitter_tweet_with_tx(tx, tweet, author).await?;
+        
+        // Note: Pour une optimisation complète, il faudrait adapter toutes les méthodes d'insertion
+        // pour utiliser la transaction. Pour l'instant, on utilise la méthode existante.
+        Ok(())
+    }
+
+    // Nouvelle méthode d'insertion avec transaction
+    async fn insert_twitter_tweet_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, tweet: &TwitterTweet, author: Option<&TwitterUser>) -> Result<(), WebError> {
+        let created_at = DateTime::parse_from_rfc3339(&tweet.created_at)
+            .map_err(|e| WebError::WTFError(format!("Date parse error: {}", e)))?
+            .with_timezone(&Utc);
+        
+        // Si on a les données de l'auteur, les insérer
+        if let Some(user) = author {
+            self.insert_twitter_user_with_tx(tx, user).await?;
+        } else {
+            // Créer un utilisateur fantôme avec l'ID du tweet
+            self.insert_phantom_user_with_tx(tx, &tweet.author_id).await?;
+        }
+        
+        let metrics = tweet.public_metrics.as_ref();
+        let lang = tweet.lang.as_deref().unwrap_or("fr");
+        let source = tweet.source.as_deref().unwrap_or("Twitter");
+        
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.tweet (
+                id, created_at, published_time, user_id, user_name,
+                user_screen_name, text, source, language,
+                coordinates_longitude, coordinates_latitude, possibly_sensitive,
+                retweet_count, reply_count, quote_count
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ON CONFLICT (id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(&tweet.id)
+        .bind(created_at.format("%Y-%m-%d").to_string())
+        .bind(created_at.timestamp_millis())
+        .bind(&tweet.author_id)
+        .bind(author.map(|u| &u.name).unwrap_or(&"Unknown".to_string()))
+        .bind(author.map(|u| &u.username).unwrap_or(&"unknown".to_string()))
+        .bind(&tweet.text)
+        .bind(source)
+        .bind(lang)
+        .bind::<Option<String>>(None)
+        .bind::<Option<String>>(None)
+        .bind(tweet.possibly_sensitive.unwrap_or(false))
+        .bind(metrics.map(|m| m.retweet_count).unwrap_or(0))
+        .bind(metrics.map(|m| m.reply_count).unwrap_or(0))
+        .bind(metrics.map(|m| m.quote_count).unwrap_or(0))
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert Twitter tweet error: {}", e)))?;
+        
+        Ok(())
+    }
+
+    async fn insert_twitter_user_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, user: &TwitterUser) -> Result<(), WebError> {
+        let created_at = user.created_at.as_deref().unwrap_or("2006-03-21");
+        
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.user (
+                id, screen_name, name, created_at, verified, protected
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(&user.id)
+        .bind(&user.username)
+        .bind(&user.name)
+        .bind(created_at)
+        .bind(user.verified.unwrap_or(false))
+        .bind(user.protected.unwrap_or(false))
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert Twitter user error: {}", e)))?;
+        
+        Ok(())
+    }
+
+    async fn insert_phantom_user_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, user_id: &str) -> Result<(), WebError> {
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.user (
+                id, screen_name, name, created_at, verified, protected
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(user_id)
+        .bind(&format!("user_{}", user_id))
+        .bind(&format!("User {}", user_id))
+        .bind("2006-03-21")
+        .bind(false)
+        .bind(false)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert phantom user error: {}", e)))?;
+        
         Ok(())
     }
 

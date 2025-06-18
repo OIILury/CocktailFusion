@@ -52,11 +52,14 @@ impl BlueskyCollector {
     }
 
     pub async fn search_posts(&self, keyword: &str, limit: usize, start_date: Option<&str>, end_date: Option<&str>) -> Result<Vec<Post>, WebError> {
+        tracing::info!("Starting optimized Bluesky search for keyword: '{}', limit: {}", keyword, limit);
+        
         let mut posts = Vec::new();
         let mut cursor: Option<String> = None;
         
         while posts.len() < limit {
-            let batch_limit = (limit - posts.len()).min(10);
+            // Optimisation : batches plus gros pour Bluesky (25 max selon API)
+            let batch_limit = (limit - posts.len()).min(25);
             let mut params = vec![
                 ("q", keyword.to_string()),
                 ("limit", batch_limit.to_string()),
@@ -392,6 +395,134 @@ impl BlueskyCollector {
                 }
             }
         }
+        
+        Ok(())
+    }
+
+    // Nouvelle méthode optimisée pour traitement en batch des posts Bluesky
+    pub async fn save_posts_batch_to_db(&self, posts: &[Post]) -> Result<usize, WebError> {
+        let mut saved_count = 0;
+        let batch_size = 50; // Traiter par batches de 50 posts pour optimiser
+        
+        for batch in posts.chunks(batch_size) {
+            // Utiliser une transaction pour le batch
+            let mut tx = self.pool.begin().await
+                .map_err(|e| WebError::WTFError(format!("Failed to start transaction: {}", e)))?;
+            
+            for post in batch {
+                if let Err(e) = self.save_single_post_in_transaction(&mut tx, post).await {
+                    tracing::warn!("Error saving Bluesky post {} in batch: {}", post.uri, e);
+                } else {
+                    saved_count += 1;
+                }
+            }
+            
+            // Commit du batch
+            tx.commit().await
+                .map_err(|e| WebError::WTFError(format!("Failed to commit batch: {}", e)))?;
+                
+            if batch.len() == batch_size {
+                tracing::debug!("Batch of {} posts processed, total saved: {}", batch_size, saved_count);
+            }
+        }
+        
+        tracing::info!("Batch processing completed: {}/{} posts saved", saved_count, posts.len());
+        Ok(saved_count)
+    }
+
+    // Version modifiée pour travailler avec une transaction
+    async fn save_single_post_in_transaction(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, post: &Post) -> Result<(), WebError> {
+        let created_at = DateTime::parse_from_rfc3339(&post.indexed_at)
+            .map_err(|e| WebError::WTFError(format!("Date parse error: {}", e)))?
+            .with_timezone(&chrono::Utc);
+            
+        let default_lang = "fr".to_string();
+        let lang = post.record.langs.first().unwrap_or(&default_lang);
+        let tweet_id = Self::extract_tweet_id(&post.uri);
+        
+        // Insérer le tweet principal avec transaction
+        self.insert_basic_tweet_with_tx(tx, &tweet_id, created_at, &post.author, &post.record.text, "Bluesky", lang, post.repost_count, post.reply_count, post.quote_count).await?;
+        
+        // Pour l'instant, on se concentre sur l'insertion de base avec transactions
+        // Les autres optimisations (hashtags, médias, etc.) peuvent être ajoutées progressivement
+        
+        // Insérer le corpus (texte pour analyse)
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.corpus (tweet_id, corpus)
+            VALUES ($1, $2)
+            ON CONFLICT (tweet_id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(&tweet_id)
+        .bind(&post.record.text)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert corpus error: {}", e)))?;
+        
+        Ok(())
+    }
+
+    // Version avec transaction pour l'insertion de base
+    async fn insert_basic_tweet_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, tweet_id: &str, created_at: DateTime<chrono::Utc>, author: &Author, 
+                               text: &str, source: &str, lang: &str, retweet_count: i64, 
+                               reply_count: i64, quote_count: i64) -> Result<(), WebError> {
+        // D'abord insérer l'utilisateur avec transaction
+        self.insert_user_with_tx(tx, author, created_at).await?;
+        
+        // Puis insérer le tweet
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.tweet (
+                id, created_at, published_time, user_id, user_name,
+                user_screen_name, text, source, language,
+                coordinates_longitude, coordinates_latitude, possibly_sensitive,
+                retweet_count, reply_count, quote_count
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ON CONFLICT (id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(tweet_id)
+        .bind(created_at.format("%Y-%m-%d").to_string())
+        .bind(created_at.timestamp_millis())
+        .bind(&author.did)
+        .bind(author.display_name.as_deref().unwrap_or_default())
+        .bind(&author.handle)
+        .bind(text)
+        .bind(source)
+        .bind(lang)
+        .bind::<Option<String>>(None) // coordinates_longitude
+        .bind::<Option<String>>(None) // coordinates_latitude
+        .bind(false) // possibly_sensitive
+        .bind(retweet_count)
+        .bind(reply_count)
+        .bind(quote_count)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert tweet error: {}", e)))?;
+        
+        Ok(())
+    }
+
+    // Version avec transaction pour l'insertion d'utilisateur
+    async fn insert_user_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, author: &Author, created_at: DateTime<chrono::Utc>) -> Result<(), WebError> {
+        sqlx::query(
+            &format!(r#"
+            INSERT INTO {}.user (
+                id, screen_name, name, created_at, verified, protected
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO NOTHING
+            "#, self.schema_name)
+        )
+        .bind(&author.did)
+        .bind(&author.handle)
+        .bind(author.display_name.as_deref().unwrap_or_default())
+        .bind(created_at.format("%Y-%m-%d").to_string())
+        .bind(false) // verified - par défaut false pour Bluesky
+        .bind(false) // protected - par défaut false pour Bluesky
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB insert user error: {}", e)))?;
         
         Ok(())
     }

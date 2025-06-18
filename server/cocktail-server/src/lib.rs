@@ -1,5 +1,4 @@
 use std::{fmt, fs, net::SocketAddr, path::PathBuf, str::FromStr};
-use crate::routes::paths::StartCollection;
 use crate::routes::collect::{start_collection, delete_collection, update_collection};
 
 use axum::{

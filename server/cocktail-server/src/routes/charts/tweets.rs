@@ -154,6 +154,7 @@ pub async fn get_results(
     request_path: paths::ProjectRequest { project_id },
     collect_path: paths::ProjectCollect { project_id },
     import_path: paths::ProjectImport { project_id },
+    export_path: paths::ProjectCsvExport { project_id },
     analysis_preview_popup_path: paths::PopupAnalysisPreview { project_id },
     analysis_path: paths::ProjectAnalysis { project_id },
     results_path: paths::ProjectResults { project_id },

@@ -76,6 +76,7 @@ pub async fn hashtags(
     tweets_count: project.tweets_count,
     authors_count: project.authors_count,
     import_path: paths::ProjectImport { project_id },
+    export_path: paths::ProjectCsvExport { project_id },
   };
 
   Ok(HtmlTemplate(content))

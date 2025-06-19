@@ -1,0 +1,467 @@
+{% extends "project_layout.html" %}
+
+{% block title %}Export CSV{% endblock %}
+
+{% block content %}
+{% let active_page = "export" %}
+  <main class="main-site" id="main-site">
+    <section class="section-content">
+      <aside class="aside">
+        <div class="accordion active">
+          <span class="icon-chevron"></span>
+          <span>Votre base de donnée</span>
+        </div>
+
+        {% include "_panel_collect.html" %}
+        
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Vos critères d'étude</span>
+        </div>
+
+        {% include "_panel_criteria.html" %}
+
+        {% if is_analyzed %}
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Les tweets de votre étude</span>
+        </div>
+        {% include "_panel_analysis.html" %}
+
+        <div class="accordion">
+          <span class="icon-chevron"></span>
+          <span>Résultats d'analyses</span>
+        </div>
+        {% include "_panel_results.html" %}
+        {% endif %}
+      </aside>
+
+      <div class="main-content">
+        <header class="export-header">
+          <h1>Export de données CSV</h1>
+          <p class="export-description">
+            Sélectionnez les colonnes que vous souhaitez inclure dans votre export CSV. 
+            Vous pouvez exporter des données de plusieurs tables simultanément.
+          </p>
+        </header>
+
+        <div class="export-controls">
+          <div class="global-controls">
+            <button type="button" class="btn btn-secondary" id="select-all">
+              <span class="icon-check"></span>
+              Tout sélectionner
+            </button>
+            <button type="button" class="btn btn-secondary" id="deselect-all">
+              <span class="icon-x"></span>
+              Tout désélectionner
+            </button>
+            <button type="button" class="btn btn-secondary" id="reset-defaults">
+              <span class="icon-refresh"></span>
+              Réinitialiser
+            </button>
+          </div>
+          
+          <div class="selection-summary">
+            <span class="selected-count">0 colonnes sélectionnées</span>
+          </div>
+        </div>
+
+        <form id="export-form" method="post" action="/export/csv">
+          <div class="database-structure">
+            <div class="table-section" data-table="tweet">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">📊</span>
+                  Table Tweet
+                  <span class="table-count">(15 colonnes)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="tweet">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="tweet_id" name="columns" value="tweet.id" checked>
+                  <label for="tweet_id">
+                    <strong>id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Identifiant unique du tweet</span>
+                  </label>
+                </div>
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="tweet_created_at" name="columns" value="tweet.created_at" checked>
+                  <label for="tweet_created_at">
+                    <strong>created_at</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Date de création</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="BIGINT">
+                  <input type="checkbox" id="tweet_published_time" name="columns" value="tweet.published_time" checked>
+                  <label for="tweet_published_time">
+                    <strong>published_time</strong>
+                    <span class="column-type" data-type="BIGINT">BIGINT</span>
+                    <span class="column-description">Horodatage de publication</span>
+                  </label>
+                </div>
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="tweet_user_id" name="columns" value="tweet.user_id" checked>
+                  <label for="tweet_user_id">
+                    <strong>user_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Identifiant de l'utilisateur</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_user_name" name="columns" value="tweet.user_name" checked>
+                  <label for="tweet_user_name">
+                    <strong>user_name</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Nom d'affichage</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_user_screen_name" name="columns" value="tweet.user_screen_name" checked>
+                  <label for="tweet_user_screen_name">
+                    <strong>user_screen_name</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Nom d'utilisateur</span>
+                  </label>
+                </div>
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="tweet_text" name="columns" value="tweet.text" checked>
+                  <label for="tweet_text">
+                    <strong>text</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Contenu du tweet</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_source" name="columns" value="tweet.source">
+                  <label for="tweet_source">
+                    <strong>source</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Source du tweet</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_language" name="columns" value="tweet.language" checked>
+                  <label for="tweet_language">
+                    <strong>language</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Langue du tweet</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_coordinates_longitude" name="columns" value="tweet.coordinates_longitude">
+                  <label for="tweet_coordinates_longitude">
+                    <strong>coordinates_longitude</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Longitude</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="TEXT">
+                  <input type="checkbox" id="tweet_coordinates_latitude" name="columns" value="tweet.coordinates_latitude">
+                  <label for="tweet_coordinates_latitude">
+                    <strong>coordinates_latitude</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Latitude</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="BOOLEAN">
+                  <input type="checkbox" id="tweet_possibly_sensitive" name="columns" value="tweet.possibly_sensitive">
+                  <label for="tweet_possibly_sensitive">
+                    <strong>possibly_sensitive</strong>
+                    <span class="column-type" data-type="BOOLEAN">BOOLEAN</span>
+                    <span class="column-description">Contenu sensible</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="BIGINT">
+                  <input type="checkbox" id="tweet_retweet_count" name="columns" value="tweet.retweet_count" checked>
+                  <label for="tweet_retweet_count">
+                    <strong>retweet_count</strong>
+                    <span class="column-type" data-type="BIGINT">BIGINT</span>
+                    <span class="column-description">Nombre de retweets</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="BIGINT">
+                  <input type="checkbox" id="tweet_reply_count" name="columns" value="tweet.reply_count" checked>
+                  <label for="tweet_reply_count">
+                    <strong>reply_count</strong>
+                    <span class="column-type" data-type="BIGINT">BIGINT</span>
+                    <span class="column-description">Nombre de réponses</span>
+                  </label>
+                </div>
+                <div class="column-item" data-type="BIGINT">
+                  <input type="checkbox" id="tweet_quote_count" name="columns" value="tweet.quote_count" checked>
+                  <label for="tweet_quote_count">
+                    <strong>quote_count</strong>
+                    <span class="column-type" data-type="BIGINT">BIGINT</span>
+                    <span class="column-description">Nombre de citations</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-section" data-table="hashtag">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">#️⃣</span>
+                  Table Tweet Hashtag
+                  <span class="table-count">(2 colonnes)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="hashtag">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="hashtag_tweet_id" name="columns" value="hashtag.tweet_id" checked>
+                  <label for="hashtag_tweet_id">
+                    <strong>tweet_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Référence au tweet</span>
+                  </label>
+                </div>
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="hashtag_hashtag" name="columns" value="hashtag.hashtag" checked>
+                  <label for="hashtag_hashtag">
+                    <strong>hashtag</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Hashtag utilisé</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-section" data-table="url">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">🔗</span>
+                  Table Tweet URL
+                  <span class="table-count">(2 colonnes)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="url">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="url_tweet_id" name="columns" value="url.tweet_id" checked>
+                  <label for="url_tweet_id">
+                    <strong>tweet_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">Référence au tweet</span>
+                  </label>
+                </div>
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="url_url" name="columns" value="url.url" checked>
+                  <label for="url_url">
+                    <strong>url</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">URL mentionnée</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-section" data-table="retweet">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">🔄</span>
+                  Table Retweet
+                  <span class="table-count">(1 colonne)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="retweet">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="retweet_tweet_id" name="columns" value="retweet.retweeted_tweet_id" checked>
+                  <label for="retweet_tweet_id">
+                    <strong>retweeted_tweet_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">ID du tweet retweeté</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-section" data-table="reply">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">💬</span>
+                  Table Reply
+                  <span class="table-count">(1 colonne)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="reply">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="reply_tweet_id" name="columns" value="reply.in_reply_to_tweet_id" checked>
+                  <label for="reply_tweet_id">
+                    <strong>in_reply_to_tweet_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">ID du tweet de réponse</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-section" data-table="quote">
+              <div class="table-header">
+                <h3>
+                  <span class="table-icon">📝</span>
+                  Table Quote
+                  <span class="table-count">(1 colonne)</span>
+                </h3>
+                <div class="table-controls">
+                  <label class="select-table-control">
+                    <input type="checkbox" class="table-select-all" data-table="quote">
+                    <span>Sélectionner tout</span>
+                  </label>
+                </div>
+              </div>
+              <div class="column-grid">
+                <div class="column-item essential" data-type="TEXT">
+                  <input type="checkbox" id="quote_tweet_id" name="columns" value="quote.quoted_tweet_id" checked>
+                  <label for="quote_tweet_id">
+                    <strong>quoted_tweet_id</strong>
+                    <span class="column-type" data-type="TEXT">TEXT</span>
+                    <span class="column-description">ID du tweet cité</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="export-actions">
+            <div class="format-options">
+              <h4>Options d'export</h4>
+              <div class="option-group">
+                <label class="option-item">
+                  <input type="radio" name="format" value="csv" checked>
+                  <span>CSV (Comma Separated Values)</span>
+                </label>
+                <label class="option-item">
+                  <input type="radio" name="format" value="tsv">
+                  <span>TSV (Tab Separated Values)</span>
+                </label>
+                <label class="option-item">
+                  <input type="radio" name="format" value="excel">
+                  <span>Excel (.xlsx)</span>
+                </label>
+              </div>
+              
+              <div class="csv-options">
+                <label class="checkbox-option">
+                  <input type="checkbox" name="include_headers" checked>
+                  <span>Inclure les en-têtes de colonnes</span>
+                </label>
+                <label class="checkbox-option">
+                  <input type="checkbox" name="utf8_bom">
+                  <span>Ajouter BOM UTF-8 (pour Excel)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button type="button" class="btn btn-secondary" id="preview-export">
+                <span class="icon-eye"></span>
+                Aperçu
+              </button>
+              <button type="submit" class="btn btn-primary" id="export-btn">
+                <span class="icon-download"></span>
+                Exporter les données
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+
+  <script>
+    // Gestion des sélections de colonnes
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('export-form');
+      const selectAllBtn = document.getElementById('select-all');
+      const deselectAllBtn = document.getElementById('deselect-all');
+      const resetBtn = document.getElementById('reset-defaults');
+      const selectedCountSpan = document.querySelector('.selected-count');
+      
+      function updateSelectedCount() {
+        const checkedBoxes = form.querySelectorAll('input[name="columns"]:checked');
+        selectedCountSpan.textContent = `${checkedBoxes.length} colonnes sélectionnées`;
+      }
+      
+      function handleTableSelectAll() {
+        document.querySelectorAll('.table-select-all').forEach(checkbox => {
+          checkbox.addEventListener('change', function() {
+            const tableName = this.dataset.table;
+            const tableSection = document.querySelector(`[data-table="${tableName}"]`);
+            const columnCheckboxes = tableSection.querySelectorAll('input[name="columns"]');
+            
+            columnCheckboxes.forEach(cb => {
+              cb.checked = this.checked;
+            });
+            
+            updateSelectedCount();
+          });
+        });
+      }
+      
+      selectAllBtn.addEventListener('click', function() {
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = true;
+        });
+        updateSelectedCount();
+      });
+      
+      deselectAllBtn.addEventListener('click', function() {
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+        });
+        updateSelectedCount();
+      });
+      
+      resetBtn.addEventListener('click', function() {
+        // Remettre les valeurs par défaut (checked dans le HTML)
+        form.querySelectorAll('input[name="columns"]').forEach(cb => {
+          cb.checked = cb.hasAttribute('checked');
+        });
+        updateSelectedCount();
+      });
+      
+      // Écouter les changements sur toutes les checkboxes
+      form.addEventListener('change', updateSelectedCount);
+      
+      handleTableSelectAll();
+      updateSelectedCount();
+    });
+  </script>
+
+</body>
+
+</html>
+{% endblock %}

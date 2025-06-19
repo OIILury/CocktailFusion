@@ -64,7 +64,7 @@ pub async fn home(
     let data = Context { 
       tweets, 
       niveau,
-      is_login: true,
+      is_login: niveau > 0 && !user_id.is_empty(),
       page_title: "Accueil".to_string(),
       data: None,
     };

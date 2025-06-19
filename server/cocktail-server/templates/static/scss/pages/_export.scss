@@ -1,0 +1,609 @@
+/* Page d'export CSV */
+
+// Layout principal
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  background-color: $blanc;
+  max-width: 100%;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// En-tête de la page d'export
+.export-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid $gris6;
+
+  h1 {
+    color: $gris5;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-family: $mainFont;
+    
+    @media (max-width: 480px) {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.export-description {
+  color: $gris4;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin: 0;
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+  }
+}
+
+// Contrôles d'export
+.export-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, $blanc2 0%, $blanc3 100%);
+  border-radius: 12px;
+  border: 1px solid $blanc4;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
+
+.global-controls {
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+// Boutons dans le style de la charte graphique
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: $mainFont;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-decoration: none;
+  
+  @media (max-width: 480px) {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  &:focus {
+    outline: 2px solid $orange;
+    outline-offset: 2px;
+  }
+
+  // État de loading
+  &.loading {
+    position: relative;
+    color: transparent;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+.btn-primary {
+  background-color: $rouge;
+  color: $blanc;
+  border: 2px solid transparent;
+
+  &:hover {
+    background-color: darken($rouge, 10%);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-secondary {
+  background-color: $gris6;
+  color: $gris5;
+  border: 2px solid transparent;
+
+  &:hover {
+    background-color: $gris;
+    color: $blanc;
+    transform: translateY(-1px);
+  }
+}
+
+.selection-summary {
+  font-weight: 600;
+  color: $gris5;
+}
+
+.selected-count {
+  background: linear-gradient(135deg, $vert2 0%, $vert 100%);
+  color: $blanc;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-family: $mainFont;
+  font-weight: 600;
+}
+
+// Structure de la base de données - CONTENEUR AGRANDI
+.database-structure {
+  padding: 2rem;
+  background: linear-gradient(135deg, $blanc2 0%, $blanc 100%);
+  border-radius: 12px;
+  border: 1px solid $blanc4;
+  // Supprimer les limitations de largeur
+  width: 100%;
+  max-width: none;
+  // Permettre le débordement horizontal contrôlé
+  overflow-x: visible;
+}
+
+// Sections de tables - CONTENEUR AGRANDI
+.table-section {
+  margin-bottom: 2.5rem;
+  background: $blanc;
+  border-radius: 8px;
+  border: 1px solid $blanc4;
+  overflow: visible; // Changer de hidden à visible
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s ease-out;
+  // Largeur complète
+  width: 100%;
+
+  &:hover {
+    border-color: $orange;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(239, 118, 7, 0.1);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.7rem;
+  background: linear-gradient(135deg, $gris5 0%, $gris3 100%);
+  color: $blanc;
+  border-radius: 8px 8px 0 0;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    font-family: $mainFont;
+    
+    @media (max-width: 480px) {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.table-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.table-count {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  margin-left: 0.5rem;
+}
+
+.select-table-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.table-select-all {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+}
+
+// Grille de colonnes - LARGEMENT AGRANDIE
+.column-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem; // Augmenté l'espacement
+  padding: 2rem; // Augmenté le padding
+  // Scroll horizontal si nécessaire
+  overflow-x: auto;
+  // Smooth scrolling
+  scroll-behavior: smooth;
+  // Largeur minimale pour forcer l'agrandissement
+  min-width: 100%;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    gap: 0.75rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+}
+
+// Items de colonnes - OPTIMISÉS pour le nouveau conteneur
+.column-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem; // Augmenté le padding
+  background: linear-gradient(135deg, $blanc2 0%, $blanc 100%);
+  border-radius: 8px;
+  border: 1px solid $blanc4;
+  transition: all 0.2s ease;
+  position: relative;
+  // Largeurs ajustées pour le nouveau conteneur
+  min-width: 220px; // Augmenté
+  max-width: 280px; // Augmenté
+  flex: 0 0 auto; // Empêche les items de se rétrécir
+  text-align: center;
+
+  &:hover {
+    background: linear-gradient(135deg, $blanc 0%, $blanc2 100%);
+    border-color: $orange;
+    box-shadow: 0 2px 8px rgba(239, 118, 7, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &.essential {
+    border-left: 4px solid $rouge;
+
+    &::before {
+      content: "⭐";
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      font-size: 0.8rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 180px;
+    max-width: 220px;
+    padding: 0.75rem;
+  }
+  
+  @media (max-width: 480px) {
+    min-width: 160px;
+    max-width: 200px;
+    padding: 0.5rem;
+  }
+}
+
+.column-item input[type="checkbox"] {
+  margin: 0 0 0.5rem 0;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid $orange;
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.2s ease;
+  background: $blanc;
+
+  &:checked {
+    background: linear-gradient(135deg, $orange 0%, darken($orange, 10%) 100%);
+    border-color: darken($orange, 10%);
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: $blanc;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  }
+
+  &:hover {
+    border-color: darken($orange, 10%);
+    box-shadow: 0 0 0 3px rgba(239, 118, 7, 0.1);
+  }
+
+  &:focus {
+    outline: 2px solid $orange;
+    outline-offset: 2px;
+  }
+}
+
+.column-item label {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: $gris3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: $mainFont;
+  text-align: center;
+  width: 100%;
+
+  strong {
+    color: $gris5;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    word-break: break-word;
+    
+    @media (max-width: 480px) {
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.column-type {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: $gris3;
+  background: $blanc3;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  text-align: center;
+  font-weight: 600;
+  min-width: 60px;
+
+  // Couleurs spécifiques par type
+  &[data-type="TEXT"] {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  &[data-type="BIGINT"] {
+    background: $vertPale;
+    color: darken($vert2, 20%);
+  }
+
+  &[data-type="BOOLEAN"] {
+    background: $orange2;
+    color: darken($orange, 20%);
+  }
+}
+
+.column-description {
+  color: $gris4;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.3;
+  word-break: break-word;
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+  }
+}
+
+// Actions d'export
+.export-actions {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, $blanc 0%, $blanc2 100%);
+  border-radius: 12px;
+  border: 1px solid $blanc4;
+}
+
+.format-options {
+  margin-bottom: 2rem;
+
+  h4 {
+    color: $gris5;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    font-family: $mainFont;
+  }
+}
+
+.option-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: $blanc;
+  border: 2px solid $blanc4;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-family: $mainFont;
+
+  &:hover {
+    border-color: $orange;
+    background: $blanc2;
+  }
+
+  input[type="radio"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: $orange;
+
+    &:focus {
+      outline: 2px solid $orange;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.csv-options {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  background: $blanc2;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  font-family: $mainFont;
+
+  &:hover {
+    background: $blanc3;
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: $orange;
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid $blanc4;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+// Indicateurs de type de données par attribut data
+.column-item {
+  &[data-type="TEXT"] .column-type {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  &[data-type="BIGINT"] .column-type {
+    background: $vertPale;
+    color: darken($vert2, 20%);
+  }
+
+  &[data-type="BOOLEAN"] .column-type {
+    background: $orange2;
+    color: darken($orange, 20%);
+  }
+}
+
+// Scrollbar personnalisée pour le défilement horizontal
+.column-grid {
+  // Webkit browsers
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $blanc3;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $gris;
+    border-radius: 4px;
+    
+    &:hover {
+      background: $gris3;
+    }
+  }
+
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: $gris $blanc3;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+} 

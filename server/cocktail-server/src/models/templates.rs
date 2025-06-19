@@ -6,7 +6,7 @@ use axum::{
   http::StatusCode,
   response::{Html, IntoResponse, Response},
 };
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use cocktail_db_web::{Bloc, HashtagWithCount, TweetsChart};
 use cocktail_graph_utils::{JsonDataGraph, Status};
 use fts::{Author, AuthorCount, Frequence, FrequenceCooccurence, Tweet};
@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::routes::{
   paths::{
     self, ProjectAllToggle, ProjectAsideHashtag, ProjectCooccurenceToggle, ProjectHashtagToggle,
-    ProjectImport, ProjectCollect,
+    ProjectImport, ProjectCollect, ProjectCsvExport,
   },
   study::results::FilterAuthor,
 };
@@ -46,6 +46,7 @@ pub(crate) struct DateRange {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub delete_popup_path: paths::PopupDeleteProject,
   pub rename_popup_path: paths::PopupRenameProject,
   pub download_path: paths::DownloadProject,
@@ -90,6 +91,7 @@ pub(crate) struct Hashtags {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub is_analyzed: bool,
@@ -180,6 +182,7 @@ pub(crate) struct Request {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub request_params: Vec<Vec<Bloc>>,
   pub popup_hashtags_path: paths::PopupHashtags,
   pub popup_keywords_path: paths::PopupKeywords,
@@ -253,6 +256,7 @@ pub(crate) struct Results {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub results_path: paths::ProjectResults,
@@ -295,6 +299,7 @@ pub(crate) struct Authors {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub results_path: paths::ProjectResults,
@@ -327,6 +332,7 @@ pub(crate) struct ResultHashtags {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub results_path: paths::ProjectResults,
@@ -364,6 +370,7 @@ pub(crate) struct Tweets {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub results_path: paths::ProjectResults,
@@ -654,6 +661,7 @@ pub(crate) struct Communities {
   pub request_path: paths::ProjectRequest,
   pub collect_path: paths::ProjectCollect,
   pub import_path: paths::ProjectImport,
+  pub export_path: paths::ProjectCsvExport,
   pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
   pub analysis_path: paths::ProjectAnalysis,
   pub results_path: paths::ProjectResults,
@@ -792,6 +800,15 @@ mod filters {
     Ok(p.format("%d/%m/%Y à %H:%M").to_string())
   }
 
+  pub fn datetime_str(p: &String) -> askama::Result<String> {
+    if p.is_empty() {
+      return Ok("".to_string());
+    }
+    
+    // Si la string est déjà formatée, on la retourne telle quelle
+    Ok(p.clone())
+  }
+
   pub fn num_format(p: &i64) -> askama::Result<String> {
     Ok(p.to_formatted_string(&Locale::fr))
   }
@@ -817,6 +834,7 @@ pub(crate) struct Collect {
     pub request_path: paths::ProjectRequest,
     pub collect_path: paths::ProjectCollect,
     pub import_path: paths::ProjectImport,
+    pub export_path: paths::ProjectCsvExport,
     pub delete_popup_path: paths::PopupDeleteProject,
     pub rename_popup_path: paths::PopupRenameProject,
     pub duplicate_popup_path: paths::PopupDuplicateProject,
@@ -844,8 +862,9 @@ pub(crate) struct Collect {
 #[allow(dead_code)]
 pub struct ImportTemplate {
     pub project_id: String,
-    pub import_path: ProjectImport,
-    pub collect_path: ProjectCollect,
+    pub import_path: paths::ProjectImport,
+    pub export_path: paths::ProjectCsvExport,
+    pub collect_path: paths::ProjectCollect,
     pub is_analyzed: bool,
     pub daterange_path: paths::ProjectDateRange,
     pub hashtag_path: paths::ProjectHashtags,
@@ -865,6 +884,38 @@ pub struct ImportTemplate {
     pub include_count: i64,
     pub exclude_count: i64,
     pub niveau: i64,
+    pub last_login_datetime: NaiveDateTime,
+    pub title: String,
+    pub tweets_count: i64,
+    pub authors_count: i64,
+}
+
+#[derive(Debug, Template)]
+#[template(path = "csv_export.html")]
+pub struct CsvExportTemplate {
+    pub project_id: String,
+    pub import_path: paths::ProjectImport,
+    pub export_path: paths::ProjectCsvExport,
+    pub collect_path: paths::ProjectCollect,
+    pub is_analyzed: bool,
+    pub daterange_path: paths::ProjectDateRange,
+    pub hashtag_path: paths::ProjectHashtags,
+    pub request_path: paths::ProjectRequest,
+    pub delete_popup_path: paths::PopupDeleteProject,
+    pub rename_popup_path: paths::PopupRenameProject,
+    pub download_path: paths::DownloadProject,
+    pub duplicate_popup_path: paths::PopupDuplicateProject,
+    pub analysis_preview_popup_path: paths::PopupAnalysisPreview,
+    pub analysis_path: paths::ProjectAnalysis,
+    pub results_path: paths::ProjectResults,
+    pub tweets_graph_path: paths::ProjectTweetsGraph,
+    pub authors_path: paths::ProjectAuthors,
+    pub result_hashtags_path: paths::ProjectResultHashtags,
+    pub communities_path: paths::Communities,
+    pub logout_url: String,
+    pub include_count: i64,
+    pub exclude_count: i64,
+    pub niveau: i32,
     pub last_login_datetime: NaiveDateTime,
     pub title: String,
     pub tweets_count: i64,

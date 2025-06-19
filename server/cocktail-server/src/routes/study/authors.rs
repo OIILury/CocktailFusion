@@ -90,6 +90,7 @@ pub async fn authors(
       page,
       tweets_count: project.tweets_count,
       authors_count: project.authors_count,
+      export_path: paths::ProjectCsvExport { project_id },
     })
     .into_response(),
   )
@@ -160,6 +161,7 @@ pub async fn authors_tab(
       page,
       tweets_count: project.tweets_count,
       authors_count: project.authors_count,
+      export_path: paths::ProjectCsvExport { project_id },
     })
     .into_response(),
   )

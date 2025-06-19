@@ -52,7 +52,7 @@
     <div class="mask" id="modal--plan" style="display: none">
     </div>
     {{/if}}
-    <section class="accueil-top {{#unless isLogin}}registration{{/unless}}">
+    <section class="accueil-top {{#unless is_login}}registration{{/unless}}">
       <div class="accueil-top__container">
         <div class="accueil-top__container__left">
           {{#if data}}
@@ -66,17 +66,13 @@
             <div class="offer offer--premium">
               <h2 class="offer__title">Les fonctionnalités</h2>
               <ul class="offer__list">
-                {{#if isLogin}}
                 <li class="offer__item"><span>Collecte de messages depuis Twitter (X) et Bluesky</span></li>
                 <li class="offer__item"><span>Importation de données via fichiers CSV</span></li>
                 <li class="offer__item"><span>Analyse des messages par hashtags, comptes et mots-clés</span></li>
                 <li class="offer__item"><span>Visualisation graphique algorithmique des hashtags, comptes et communautés</span></li>
-                {{/if}}
               </ul>
-              {{#if isLogin}}
-                {{#if niveau}}
+              {{#if is_login}}
                   <a href="/projets" class="button btn-signin">Accéder</a>
-                {{/if}}
               {{/if}}
             </div>
           </div>

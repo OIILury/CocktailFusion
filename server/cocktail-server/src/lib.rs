@@ -11,7 +11,7 @@ use axum::{
   headers::{HeaderMap, HeaderValue},
   http::{header::CONTENT_TYPE, Request, StatusCode, Uri},
   middleware::{self, Next},
-  response::{IntoResponse, Response},
+  response::{IntoResponse, Response, Redirect},
   routing::get,
   BoxError, Extension, Router,
 };
@@ -44,7 +44,7 @@ use crate::{
     home, index,
     projects::{
       basket::*, collect::*, daterange::*, delete::*, download::*, duplicate::*, hashtags::*, nouveau::*,
-      projects, rename::*, request::*, update::*, import::*,
+      projects, rename::*, request::*, update::*, import::*, csv_export::*,
     },
     study::{analysis::*, authors::*, communities::*, results},
     csv_import,
@@ -278,6 +278,7 @@ pub async fn run(
     .typed_post(update_collection)
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
+    .route("/projets/:project_id/export", get(csv_export))
     .merge(csv_import::routes())
     .merge(automation::routes())
     .fallback(fallback)
@@ -343,51 +344,41 @@ where
     .await;
 
     if session_result.is_err() {
-      let cookies = headers.get("cookie").and_then(|c| c.to_str().ok());
-
-      let mut user_id = "".to_string();
-
-      if cookies.is_some() && cookies.unwrap().contains("user_id=") {
-        let cookie = cookies.unwrap()[cookies.unwrap().find("user_id=").unwrap() + 8..].to_string();
-        user_id = cookie[..cookie.find(";").unwrap_or(cookie.len())].to_string();
-      }
-      Ok(AuthenticatedUser {
-        niveau: 0,
-        last_login_datetime,
-        user_id,
-      })
-    } else {
-      let session = session_result.unwrap();
-
-      let traits = session.identity.traits.unwrap_or_default();
-
-      let niveau = traits
-        .get("niveau")
-        .unwrap_or(&json!(0))
-        .as_i64()
-        .unwrap_or_default();
-      let user_id = traits
-        .get("email")
-        .unwrap_or(&json!(""))
-        .as_str()
-        .unwrap_or_default()
-        .to_string();
-
-      if session.authenticated_at.is_some() {
-        last_login_datetime =
-          NaiveDateTime::parse_from_str(&session.authenticated_at.unwrap(), "%Y-%m-%dT%H:%M:%S%Z")
-            .unwrap_or(NaiveDateTime::new(
-              NaiveDate::from_ymd(1970, 1, 1),
-              NaiveTime::from_hms(0, 0, 0),
-            ));
-      }
-
-      Ok(AuthenticatedUser {
-        niveau,
-        last_login_datetime,
-        user_id,
-      })
+      return Err(Redirect::to("/auth/login").into_response());
     }
+
+    let session = session_result.unwrap();
+    let traits = session.identity.traits.unwrap_or_default();
+
+    // Vérifier que les traits requis sont présents et valides
+    let niveau = match traits.get("niveau") {
+      Some(n) => n.as_i64().unwrap_or(0),
+      None => return Err(Redirect::to("/auth/login").into_response()),
+    };
+
+    let user_id = match traits.get("email") {
+      Some(e) => e.as_str().unwrap_or_default().to_string(),
+      None => return Err(Redirect::to("/auth/login").into_response()),
+    };
+
+    if user_id.is_empty() {
+      return Err(Redirect::to("/auth/login").into_response());
+    }
+
+    if session.authenticated_at.is_some() {
+      last_login_datetime =
+        NaiveDateTime::parse_from_str(&session.authenticated_at.unwrap(), "%Y-%m-%dT%H:%M:%S%Z")
+          .unwrap_or(NaiveDateTime::new(
+            NaiveDate::from_ymd(1970, 1, 1),
+            NaiveTime::from_hms(0, 0, 0),
+          ));
+    }
+
+    Ok(AuthenticatedUser {
+      niveau,
+      last_login_datetime,
+      user_id,
+    })
   }
 }
 

@@ -2,10 +2,10 @@ use crate::{
     error::WebError,
     models::templates::{HtmlTemplate, ImportTemplate},
     routes::paths::{
-        ProjectImport, ProjectCollect, ProjectDateRange, ProjectHashtags, ProjectRequest,
+        ProjectImport, ProjectCollect, ProjectCsvExport, ProjectDateRange, ProjectHashtags, ProjectRequest,
         PopupDeleteProject, PopupRenameProject, DownloadProject, PopupDuplicateProject,
         PopupAnalysisPreview, ProjectAnalysis, ProjectResults, ProjectTweetsGraph, ProjectAuthors,
-        ProjectResultHashtags, Communities,
+        ProjectResultHashtags, Communities, 
     },
     AppState,
 };
@@ -34,6 +34,7 @@ pub async fn import(
     let template = ImportTemplate {
         project_id: project_id.to_string(),
         import_path: ProjectImport { project_id },
+        export_path: ProjectCsvExport { project_id },
         collect_path: ProjectCollect { project_id },
         is_analyzed: project.is_analyzed == 1,
         daterange_path: ProjectDateRange { project_id },

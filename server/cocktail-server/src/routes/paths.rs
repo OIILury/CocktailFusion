@@ -236,6 +236,11 @@ pub struct ProjectImport {
     pub project_id: Uuid,
 }
 #[derive(Debug, Deserialize, TypedPath)]
+#[typed_path("/projets/:project_id/export")]
+pub struct ProjectCsvExport {
+    pub project_id: Uuid,
+}
+#[derive(Debug, Deserialize, TypedPath)]
 #[typed_path("/projets/:project_id/collect")]
 pub struct ProjectCollect {
     pub project_id: Uuid,

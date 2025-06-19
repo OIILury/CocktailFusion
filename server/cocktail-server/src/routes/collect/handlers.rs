@@ -103,9 +103,9 @@ pub async fn start_collection(
         }
     }
     
-    // Create schema name based on current date
-    let schema_name = format!("collect_{}", Local::now().format("%Y%m%d"));
-    tracing::info!("Using schema name: {}", schema_name);
+    // Use a fixed schema name that gets updated with each collection
+    let schema_name = "collect_latest".to_string();
+    tracing::info!("Using fixed collection schema: {} (preserving data between collections)", schema_name);
     
     // Get database connection
     let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
@@ -119,7 +119,13 @@ pub async fn start_collection(
     let mut total_posts = 0;
     
     // Optimisation majeure : traitement parallèle des mots-clés et réseaux
-    let limit = req.limit.unwrap_or(10);
+    let mut limit = req.limit.unwrap_or(10);
+    
+    // Twitter API requires minimum 10 tweets per request, but we can still respect user's smaller limits
+    // by stopping early in the collection process
+    if limit < 10 {
+        tracing::warn!("Twitter API requires minimum 10 tweets per request. Small limits may result in collecting slightly more tweets than requested.");
+    }
     
     // Créer toutes les tâches de collecte en parallèle
     let mut collection_tasks = Vec::new();
@@ -184,24 +190,16 @@ pub async fn delete_collection(
         .await
         .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
-    // Get all collection schemas (collect_YYYYMMDD pattern)
-    let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%'";
-    let collections = sqlx::query_scalar::<_, String>(schema_query)
-        .fetch_all(&pool)
+    // Drop the collection schema
+    let schema_name = "collect_latest";
+    sqlx::query(&format!("DROP SCHEMA IF EXISTS {} CASCADE", schema_name))
+        .execute(&pool)
         .await
-        .map_err(|e| WebError::WTFError(format!("Failed to get collection schemas: {}", e)))?;
-
-    // Drop each collection schema
-    for schema_name in &collections {
-        sqlx::query(&format!("DROP SCHEMA IF EXISTS {} CASCADE", schema_name))
-            .execute(&pool)
-            .await
-            .map_err(|e| WebError::WTFError(format!("Failed to drop schema {}: {}", schema_name, e)))?;
-    }
+        .map_err(|e| WebError::WTFError(format!("Failed to drop schema {}: {}", schema_name, e)))?;
 
     Ok(Json(CollectionResponse {
         success: true,
-        message: "Successfully deleted all collected data".to_string(),
+        message: "Successfully deleted collected data".to_string(),
         count: 0,
     }))
 }
@@ -211,18 +209,13 @@ pub async fn update_collection(
     State(_state): State<AppState>,
     _authuser: AuthenticatedUser,
 ) -> Result<impl IntoResponse, WebError> {
-    // Get the most recent collection schema (collect_YYYYMMDD pattern)
+    // Use the fixed collection schema name
     let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()))
         .await
         .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
-    let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%' ORDER BY schema_name DESC LIMIT 1";
-    let schema_name = sqlx::query_scalar::<_, String>(schema_query)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| WebError::WTFError(format!("Failed to get collection schema: {}", e)))?
-        .unwrap_or_else(|| format!("collect_{}", Local::now().format("%Y%m%d")));
+    let schema_name = "collect_latest".to_string();
 
     tracing::info!("Starting automation pipeline for schema {} and project {}", schema_name, path.project_id);
     
@@ -294,7 +287,7 @@ async fn collect_bluesky_optimized(
                 tracing::info!("Found {} Bluesky posts for keyword: {}", posts.len(), keyword);
                 
                 // Utiliser la nouvelle méthode de traitement en batch optimisée
-                match collector.save_posts_batch_to_db(&posts).await {
+                match collector.save_all_posts_ultra_batch(&posts).await {
                     Ok(saved_count) => {
                         tracing::info!("Successfully saved {}/{} Bluesky posts for keyword: {}", saved_count, posts.len(), keyword);
                         saved_count
@@ -338,7 +331,7 @@ async fn collect_twitter_optimized(
                         
                         // Utiliser la nouvelle méthode de traitement en batch optimisée
                         if let Some(tweets) = &search_response.data {
-                            match collector.save_tweets_batch_to_db(tweets, search_response.includes.as_ref()).await {
+                            match collector.save_all_tweets_ultra_batch(tweets, search_response.includes.as_ref()).await {
                                 Ok(saved_count) => {
                                     tracing::info!("Successfully saved {}/{} Twitter tweets for keyword: {}", 
                                         saved_count, tweets.len(), keyword);

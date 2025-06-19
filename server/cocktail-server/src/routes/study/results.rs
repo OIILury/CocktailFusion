@@ -65,68 +65,75 @@ async fn get_tweets_from_database(
 ) -> Result<Vec<fts::Tweet>, WebError> {
   let mut tweets = Vec::new();
   
-  // Get all collection schemas (collect_YYYYMMDD pattern)
-  let schema_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'collect_%' ORDER BY schema_name DESC";
-  let schemas = sqlx::query_scalar::<_, String>(schema_query)
+  // Use the fixed collection schema name
+  let schema_name = "collect_latest";
+  
+  // Check if the schema exists
+  let schema_exists = sqlx::query_scalar::<_, bool>(
+    "SELECT EXISTS (SELECT FROM information_schema.schemata WHERE schema_name = $1)"
+  )
+  .bind(schema_name)
+  .fetch_one(pool)
+  .await
+  .map_err(|e| WebError::WTFError(format!("Failed to check schema existence: {}", e)))?;
+  
+  if !schema_exists {
+    return Ok(tweets);
+  }
+
+  // Build a simple query without complex filtering for now
+  let order_clause = match order.as_str() {
+    "croissant" => "ORDER BY published_time ASC",
+    _ => "ORDER BY published_time DESC",
+  };
+  
+  let query = format!(
+    "SELECT id, created_at, published_time, user_id, user_name, user_screen_name, text, source, language, retweet_count, reply_count, quote_count FROM {}.tweet {} LIMIT 50",
+    schema_name, order_clause
+  );
+  
+  let rows = sqlx::query_as::<_, (String, String, i64, String, String, String, String, Option<String>, String, i64, i64, i64)>(&query)
     .fetch_all(pool)
     .await
-    .map_err(|e| WebError::WTFError(format!("Failed to get collection schemas: {}", e)))?;
-
-  for schema_name in schemas {
-    // Build a simple query without complex filtering for now
-    let order_clause = match order.as_str() {
-      "croissant" => "ORDER BY published_time ASC",
-      _ => "ORDER BY published_time DESC",
-    };
+    .map_err(|e| WebError::WTFError(format!("Failed to query tweets from {}: {}", schema_name, e)))?;
+  
+  for row in rows {
+    // Skip if author filter doesn't match
+    if let Some(author_name) = author {
+      if row.5 != *author_name {
+        continue;
+      }
+    }
     
-    let query = format!(
-      "SELECT id, created_at, published_time, user_id, user_name, user_screen_name, text, source, language, retweet_count, reply_count, quote_count FROM {}.tweet {} LIMIT 50",
-      schema_name, order_clause
+    // Skip if date filter doesn't match
+    if let Some(filter_date) = date {
+      if row.1 != filter_date.format("%Y-%m-%d").to_string() {
+        continue;
+      }
+    }
+    
+    let created_at = chrono::DateTime::from_utc(
+      chrono::NaiveDateTime::parse_from_str(&row.1, "%Y-%m-%d")
+        .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
+      chrono::Utc
     );
     
-    let rows = sqlx::query_as::<_, (String, String, i64, String, String, String, String, Option<String>, String, i64, i64, i64)>(&query)
-      .fetch_all(pool)
-      .await
-      .map_err(|e| WebError::WTFError(format!("Failed to query tweets from {}: {}", schema_name, e)))?;
-    
-    for row in rows {
-      // Skip if author filter doesn't match
-      if let Some(author_name) = author {
-        if row.5 != *author_name {
-          continue;
-        }
-      }
-      
-      // Skip if date filter doesn't match
-      if let Some(filter_date) = date {
-        if row.1 != filter_date.format("%Y-%m-%d").to_string() {
-          continue;
-        }
-      }
-      
-      let created_at = chrono::DateTime::from_utc(
-        chrono::NaiveDateTime::parse_from_str(&row.1, "%Y-%m-%d")
-          .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
-        chrono::Utc
-      );
-      
-      tweets.push(fts::Tweet {
-        id: row.0,
-        user_id: row.3,
-        user_name: row.4,
-        user_screen_name: row.5,
-        text: row.6,
-        published_time: created_at,
-        published_time_ms: row.2 as u64,
-        retweet_count: row.9 as u64,
-        reply_count: row.10 as u64,
-        quote_count: row.11 as u64,
-        hashtags: Vec::new(), // TODO: Get hashtags from tweet_hashtag table
-        urls: Vec::new(), // TODO: Get URLs from tweet_url table
-        source: row.7,
-        created_at: Some(row.1),
-      });
-    }
+    tweets.push(fts::Tweet {
+      id: row.0,
+      user_id: row.3,
+      user_name: row.4,
+      user_screen_name: row.5,
+      text: row.6,
+      published_time: created_at,
+      published_time_ms: row.2 as u64,
+      retweet_count: row.9 as u64,
+      reply_count: row.10 as u64,
+      quote_count: row.11 as u64,
+      hashtags: Vec::new(), // TODO: Get hashtags from tweet_hashtag table
+      urls: Vec::new(), // TODO: Get URLs from tweet_url table
+      source: row.7,
+      created_at: Some(row.1),
+    });
   }
   
   Ok(tweets)

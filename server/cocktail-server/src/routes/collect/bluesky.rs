@@ -198,59 +198,110 @@ impl BlueskyCollector {
         Ok(())
     }
 
-    // Helper pour insérer des hashtags avec indices
+    // Helper pour insérer des hashtags avec indices - VERSION BATCH
     async fn insert_hashtags(&self, tweet_id: &str, facets: &[Facet]) -> Result<(), WebError> {
-        for (order, facet) in facets.iter().enumerate() {
-            for feature in &facet.features {
-                if feature.type_field == "app.bsky.richtext.facet#tag" {
-                    if let Some(tag) = &feature.tag {
-                        sqlx::query(
-                            &format!(r#"
-                            INSERT INTO {}.tweet_hashtag (tweet_id, hashtag, "order", start_indice, end_indice)
-                            VALUES ($1, $2, $3, $4, $5)
-                            ON CONFLICT (tweet_id, hashtag) DO NOTHING
-                            "#, self.schema_name)
-                        )
-                        .bind(tweet_id)
-                        .bind(tag)
-                        .bind(order as i32)
-                        .bind(facet.index.byte_start)
-                        .bind(facet.index.byte_end)
-                        .execute(&self.pool)
-                        .await
-                        .map_err(|e| WebError::WTFError(format!("DB insert hashtag error: {}", e)))?;
+        // Collecter d'abord tous les hashtags
+        let hashtags: Vec<(&str, i32, i32)> = facets
+            .iter()
+            .flat_map(|facet| {
+                facet.features.iter().filter_map(|feature| {
+                    if feature.type_field == "app.bsky.richtext.facet#tag" {
+                        feature.tag.as_ref().map(|tag| {
+                            (tag.as_str(), facet.index.byte_start, facet.index.byte_end)
+                        })
+                    } else {
+                        None
                     }
-                }
-            }
+                })
+            })
+            .collect();
+        
+        if hashtags.is_empty() {
+            return Ok(());
         }
+        
+        // Traiter par lots de 100 pour éviter les arrays trop volumineux
+        const BATCH_SIZE: usize = 100;
+        for chunk in hashtags.chunks(BATCH_SIZE) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|_| tweet_id).collect();
+            let tags: Vec<&str> = chunk.iter().map(|(tag, _, _)| *tag).collect();
+            let orders: Vec<i32> = (0..chunk.len()).map(|i| i as i32).collect();
+            let starts: Vec<i32> = chunk.iter().map(|(_, start, _)| *start).collect();
+            let ends: Vec<i32> = chunk.iter().map(|(_, _, end)| *end).collect();
+            
+            let query = format!(
+                r#"
+                INSERT INTO {}.tweet_hashtag (tweet_id, hashtag, "order", start_indice, end_indice)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[], $4::int[], $5::int[])
+                ON CONFLICT (tweet_id, hashtag) DO NOTHING
+                "#,
+                self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids)
+                .bind(tags)
+                .bind(orders)
+                .bind(starts)
+                .bind(ends)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| WebError::WTFError(format!("DB batch insert hashtags error: {}", e)))?;
+        }
+        
         Ok(())
     }
 
-    // Helper pour insérer des URLs avec indices
+    // Helper pour insérer des URLs avec indices - VERSION BATCH
     async fn insert_urls(&self, tweet_id: &str, facets: &[Facet]) -> Result<(), WebError> {
-        for (order, facet) in facets.iter().enumerate() {
-            for feature in &facet.features {
-                if feature.type_field == "app.bsky.richtext.facet#link" {
-                    if let Some(uri) = &feature.uri {
-                        sqlx::query(
-                            &format!(r#"
-                            INSERT INTO {}.tweet_url (tweet_id, url, "order", start_indice, end_indice)
-                            VALUES ($1, $2, $3, $4, $5)
-                            ON CONFLICT (tweet_id, url) DO NOTHING
-                            "#, self.schema_name)
-                        )
-                        .bind(tweet_id)
-                        .bind(uri)
-                        .bind(order as i32)
-                        .bind(facet.index.byte_start)
-                        .bind(facet.index.byte_end)
-                        .execute(&self.pool)
-                        .await
-                        .map_err(|e| WebError::WTFError(format!("DB insert URL error: {}", e)))?;
+        // Collecter d'abord toutes les URLs
+        let urls: Vec<(&str, i32, i32)> = facets
+            .iter()
+            .flat_map(|facet| {
+                facet.features.iter().filter_map(|feature| {
+                    if feature.type_field == "app.bsky.richtext.facet#link" {
+                        feature.uri.as_ref().map(|uri| {
+                            (uri.as_str(), facet.index.byte_start, facet.index.byte_end)
+                        })
+                    } else {
+                        None
                     }
-                }
-            }
+                })
+            })
+            .collect();
+        
+        if urls.is_empty() {
+            return Ok(());
         }
+        
+        const BATCH_SIZE: usize = 100;
+        for chunk in urls.chunks(BATCH_SIZE) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|_| tweet_id).collect();
+            let uris: Vec<&str> = chunk.iter().map(|(uri, _, _)| *uri).collect();
+            let orders: Vec<i32> = (0..chunk.len()).map(|i| i as i32).collect();
+            let starts: Vec<i32> = chunk.iter().map(|(_, start, _)| *start).collect();
+            let ends: Vec<i32> = chunk.iter().map(|(_, _, end)| *end).collect();
+            
+            let query = format!(
+                r#"
+                INSERT INTO {}.tweet_url (tweet_id, url, "order", start_indice, end_indice)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[], $4::int[], $5::int[])
+                ON CONFLICT (tweet_id, url) DO NOTHING
+                "#,
+                self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids)
+                .bind(uris)
+                .bind(orders)
+                .bind(starts)
+                .bind(ends)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| WebError::WTFError(format!("DB batch insert URLs error: {}", e)))?;
+        }
+        
         Ok(())
     }
 
@@ -399,132 +450,26 @@ impl BlueskyCollector {
         Ok(())
     }
 
-    // Nouvelle méthode optimisée pour traitement en batch des posts Bluesky
+    // Nouvelle méthode optimisée pour traitement en batch
     pub async fn save_posts_batch_to_db(&self, posts: &[Post]) -> Result<usize, WebError> {
         let mut saved_count = 0;
-        let batch_size = 50; // Traiter par batches de 50 posts pour optimiser
         
-        for batch in posts.chunks(batch_size) {
-            // Utiliser une transaction pour le batch
-            let mut tx = self.pool.begin().await
-                .map_err(|e| WebError::WTFError(format!("Failed to start transaction: {}", e)))?;
-            
-            for post in batch {
-                if let Err(e) = self.save_single_post_in_transaction(&mut tx, post).await {
-                    tracing::warn!("Error saving Bluesky post {} in batch: {}", post.uri, e);
-                } else {
-                    saved_count += 1;
-                }
+        // Traitement séquentiel mais fiable - évite les deadlocks de transaction
+        for post in posts {
+            if let Err(e) = self.save_post_to_db(post).await {
+                tracing::warn!("Error saving post {} in batch: {}", post.uri, e);
+            } else {
+                saved_count += 1;
             }
             
-            // Commit du batch
-            tx.commit().await
-                .map_err(|e| WebError::WTFError(format!("Failed to commit batch: {}", e)))?;
-                
-            if batch.len() == batch_size {
-                tracing::debug!("Batch of {} posts processed, total saved: {}", batch_size, saved_count);
+            // Log de progression pour voir l'avancement
+            if saved_count % 10 == 0 {
+                tracing::info!("Saved {}/{} posts...", saved_count, posts.len());
             }
         }
         
         tracing::info!("Batch processing completed: {}/{} posts saved", saved_count, posts.len());
         Ok(saved_count)
-    }
-
-    // Version modifiée pour travailler avec une transaction
-    async fn save_single_post_in_transaction(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, post: &Post) -> Result<(), WebError> {
-        let created_at = DateTime::parse_from_rfc3339(&post.indexed_at)
-            .map_err(|e| WebError::WTFError(format!("Date parse error: {}", e)))?
-            .with_timezone(&chrono::Utc);
-            
-        let default_lang = "fr".to_string();
-        let lang = post.record.langs.first().unwrap_or(&default_lang);
-        let tweet_id = Self::extract_tweet_id(&post.uri);
-        
-        // Insérer le tweet principal avec transaction
-        self.insert_basic_tweet_with_tx(tx, &tweet_id, created_at, &post.author, &post.record.text, "Bluesky", lang, post.repost_count, post.reply_count, post.quote_count).await?;
-        
-        // Pour l'instant, on se concentre sur l'insertion de base avec transactions
-        // Les autres optimisations (hashtags, médias, etc.) peuvent être ajoutées progressivement
-        
-        // Insérer le corpus (texte pour analyse)
-        sqlx::query(
-            &format!(r#"
-            INSERT INTO {}.corpus (tweet_id, corpus)
-            VALUES ($1, $2)
-            ON CONFLICT (tweet_id) DO NOTHING
-            "#, self.schema_name)
-        )
-        .bind(&tweet_id)
-        .bind(&post.record.text)
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| WebError::WTFError(format!("DB insert corpus error: {}", e)))?;
-        
-        Ok(())
-    }
-
-    // Version avec transaction pour l'insertion de base
-    async fn insert_basic_tweet_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, tweet_id: &str, created_at: DateTime<chrono::Utc>, author: &Author, 
-                               text: &str, source: &str, lang: &str, retweet_count: i64, 
-                               reply_count: i64, quote_count: i64) -> Result<(), WebError> {
-        // D'abord insérer l'utilisateur avec transaction
-        self.insert_user_with_tx(tx, author, created_at).await?;
-        
-        // Puis insérer le tweet
-        sqlx::query(
-            &format!(r#"
-            INSERT INTO {}.tweet (
-                id, created_at, published_time, user_id, user_name,
-                user_screen_name, text, source, language,
-                coordinates_longitude, coordinates_latitude, possibly_sensitive,
-                retweet_count, reply_count, quote_count
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (id) DO NOTHING
-            "#, self.schema_name)
-        )
-        .bind(tweet_id)
-        .bind(created_at.format("%Y-%m-%d").to_string())
-        .bind(created_at.timestamp_millis())
-        .bind(&author.did)
-        .bind(author.display_name.as_deref().unwrap_or_default())
-        .bind(&author.handle)
-        .bind(text)
-        .bind(source)
-        .bind(lang)
-        .bind::<Option<String>>(None) // coordinates_longitude
-        .bind::<Option<String>>(None) // coordinates_latitude
-        .bind(false) // possibly_sensitive
-        .bind(retweet_count)
-        .bind(reply_count)
-        .bind(quote_count)
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| WebError::WTFError(format!("DB insert tweet error: {}", e)))?;
-        
-        Ok(())
-    }
-
-    // Version avec transaction pour l'insertion d'utilisateur
-    async fn insert_user_with_tx(&self, tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, author: &Author, created_at: DateTime<chrono::Utc>) -> Result<(), WebError> {
-        sqlx::query(
-            &format!(r#"
-            INSERT INTO {}.user (
-                id, screen_name, name, created_at, verified, protected
-            ) VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO NOTHING
-            "#, self.schema_name)
-        )
-        .bind(&author.did)
-        .bind(&author.handle)
-        .bind(author.display_name.as_deref().unwrap_or_default())
-        .bind(created_at.format("%Y-%m-%d").to_string())
-        .bind(false) // verified - par défaut false pour Bluesky
-        .bind(false) // protected - par défaut false pour Bluesky
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| WebError::WTFError(format!("DB insert user error: {}", e)))?;
-        
-        Ok(())
     }
 
     pub async fn save_post_to_db(&self, post: &Post) -> Result<(), WebError> {
@@ -672,6 +617,406 @@ impl BlueskyCollector {
         .await
         .map_err(|e| WebError::WTFError(format!("DB insert corpus error: {}", e)))?;
         
+        Ok(())
+    }
+
+    // Nouvelle méthode ULTRA SCALABLE pour insérer TOUTES les données de TOUS les posts Bluesky
+    pub async fn save_all_posts_ultra_batch(&self, posts: &[Post]) -> Result<usize, WebError> {
+        if posts.is_empty() {
+            return Ok(0);
+        }
+
+        tracing::info!("🚀 Démarrage insertion ultra-scalable Bluesky pour {} posts", posts.len());
+        let start_time = std::time::Instant::now();
+
+        // ÉTAPE 1: Users (auteurs des posts)
+        let authors: Vec<&Author> = posts.iter().map(|p| &p.author).collect();
+        self.bulk_insert_bluesky_users(&authors).await?;
+        tracing::info!("✅ Users Bluesky insérés: {}", authors.len());
+
+        // ÉTAPE 2: Posts principaux
+        self.bulk_insert_bluesky_posts(posts).await?;
+        tracing::info!("✅ Posts Bluesky insérés: {}", posts.len());
+
+        // ÉTAPE 3: Collecter tous les IDs de posts disponibles pour validation des FK
+        let mut all_available_post_ids = std::collections::HashSet::new();
+        for post in posts {
+            let tweet_id = Self::extract_tweet_id(&post.uri);
+            all_available_post_ids.insert(tweet_id);
+        }
+
+        // ÉTAPE 4: Relations et corpus avec validation FK
+        let mut all_corpus = Vec::new();
+        let mut all_replies = Vec::new();
+
+        for post in posts {
+            let tweet_id = Self::extract_tweet_id(&post.uri);
+            
+            // Corpus
+            all_corpus.push((tweet_id.clone(), post.record.text.clone()));
+
+            // Relations de réponse avec validation FK
+            if let Some(reply) = &post.record.reply {
+                let parent_id = Self::extract_tweet_id(&reply.parent.uri);
+                // Vérifier que le post parent existe dans notre jeu de données
+                if all_available_post_ids.contains(&parent_id) {
+                    all_replies.push((tweet_id.clone(), parent_id, post.author.did.clone(), "unknown".to_string()));
+                } else {
+                    tracing::warn!("Post parent {} non trouvé dans le jeu de données, relation ignorée", parent_id);
+                }
+            }
+        }
+
+        self.bulk_insert_bluesky_corpus(&all_corpus).await?;
+        self.bulk_insert_bluesky_replies(&all_replies).await?;
+        
+        tracing::info!("✅ Relations Bluesky insérées: {} corpus, {} replies", 
+            all_corpus.len(), all_replies.len());
+
+        // ÉTAPE 5: Entités en masse
+        let mut all_hashtags = Vec::new();
+        let mut all_urls = Vec::new();
+        let mut all_emojis = Vec::new();
+
+        for post in posts {
+            let tweet_id = Self::extract_tweet_id(&post.uri);
+            
+            if let Some(facets) = &post.record.facets {
+                for facet in facets {
+                    for feature in &facet.features {
+                        match feature.type_field.as_str() {
+                            "app.bsky.richtext.facet#tag" => {
+                                if let Some(tag) = &feature.tag {
+                                    all_hashtags.push((tweet_id.clone(), tag.clone(), facet.index.byte_start, facet.index.byte_end));
+                                }
+                            }
+                            "app.bsky.richtext.facet#link" => {
+                                if let Some(uri) = &feature.uri {
+                                    all_urls.push((tweet_id.clone(), uri.clone(), facet.index.byte_start, facet.index.byte_end));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+
+            // Emojis depuis le texte
+            let emojis = self.extract_emojis_from_text(&post.record.text);
+            for (order, emoji) in emojis.iter().enumerate() {
+                all_emojis.push((tweet_id.clone(), emoji.clone(), order as i32));
+            }
+        }
+
+        const BATCH_SIZE: usize = 1000;
+        self.bulk_insert_bluesky_hashtags(&all_hashtags, BATCH_SIZE).await?;
+        self.bulk_insert_bluesky_urls(&all_urls, BATCH_SIZE).await?;
+        self.bulk_insert_bluesky_emojis(&all_emojis, BATCH_SIZE).await?;
+
+        tracing::info!("✅ Entités Bluesky insérées: {} hashtags, {} URLs, {} emojis", 
+            all_hashtags.len(), all_urls.len(), all_emojis.len());
+
+        // ÉTAPE 6: Médias
+        self.bulk_insert_bluesky_media(posts).await?;
+
+        let total_duration = start_time.elapsed();
+        tracing::info!("🎉 Insertion ultra-scalable Bluesky terminée en {:?}", total_duration);
+
+        Ok(posts.len())
+    }
+
+    // Helper pour extraire les emojis d'un texte
+    fn extract_emojis_from_text(&self, text: &str) -> Vec<String> {
+        let emoji_ranges = [
+            '\u{1F600}'..='\u{1F64F}', // Emoticons
+            '\u{1F300}'..='\u{1F5FF}', // Miscellaneous Symbols and Pictographs
+            '\u{1F680}'..='\u{1F6FF}', // Transport and Map Symbols
+            '\u{1F1E0}'..='\u{1F1FF}', // Regional Indicator Symbols (flags)
+            '\u{2600}'..='\u{26FF}',   // Miscellaneous Symbols
+            '\u{2700}'..='\u{27BF}',   // Dingbats
+        ];
+        
+        let mut emojis = Vec::new();
+        for ch in text.chars() {
+            if emoji_ranges.iter().any(|range| range.contains(&ch)) {
+                emojis.push(ch.to_string());
+            }
+        }
+        emojis
+    }
+
+    // Helpers pour insertions massives Bluesky
+
+    async fn bulk_insert_bluesky_users(&self, users: &[&Author]) -> Result<(), WebError> {
+        if users.is_empty() { return Ok(()); }
+        
+        const BATCH_SIZE: usize = 1000;
+        for chunk in users.chunks(BATCH_SIZE) {
+            let ids: Vec<&str> = chunk.iter().map(|u| u.did.as_str()).collect();
+            let screen_names: Vec<&str> = chunk.iter().map(|u| u.handle.as_str()).collect();
+            let names: Vec<&str> = chunk.iter().map(|u| u.display_name.as_deref().unwrap_or("")).collect();
+            let created_ats: Vec<Option<&str>> = chunk.iter().map(|_| None).collect(); // Bluesky Author n'a pas created_at
+            // Bluesky n'a pas de champs verified/protected comme Twitter
+            let verifieds: Vec<bool> = chunk.iter().map(|_| false).collect();
+            let protecteds: Vec<bool> = chunk.iter().map(|_| false).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.user (id, screen_name, name, created_at, verified, protected)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::bool[])
+                ON CONFLICT (id) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(ids).bind(screen_names).bind(names).bind(created_ats).bind(verifieds).bind(protecteds)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky users error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_posts(&self, posts: &[Post]) -> Result<(), WebError> {
+        if posts.is_empty() { return Ok(()); }
+        
+        const BATCH_SIZE: usize = 1000;
+        for chunk in posts.chunks(BATCH_SIZE) {
+            let ids: Vec<String> = chunk.iter().map(|p| Self::extract_tweet_id(&p.uri)).collect();
+            let id_refs: Vec<&str> = ids.iter().map(|s| s.as_str()).collect();
+            let created_ats: Vec<&str> = chunk.iter().map(|p| p.indexed_at.as_str()).collect();
+            let published_times: Vec<i64> = chunk.iter().map(|p| {
+                chrono::DateTime::parse_from_rfc3339(&p.indexed_at)
+                    .unwrap_or_else(|_| chrono::Utc::now().into())
+                    .timestamp_millis()  // CORRECTION: Millisecondes au lieu de secondes !
+            }).collect();
+            let user_ids: Vec<&str> = chunk.iter().map(|p| p.author.did.as_str()).collect();
+            let user_names: Vec<&str> = chunk.iter().map(|p| {
+                p.author.display_name.as_deref().unwrap_or("Unknown")
+            }).collect();
+            let user_screen_names: Vec<&str> = chunk.iter().map(|p| p.author.handle.as_str()).collect();
+            let texts: Vec<&str> = chunk.iter().map(|p| p.record.text.as_str()).collect();
+            
+            // Bluesky n'a pas tous les champs de Twitter, on utilise des valeurs par défaut
+            let sources: Vec<&str> = chunk.iter().map(|_| "Bluesky").collect();
+            let languages: Vec<&str> = chunk.iter().map(|p| {
+                // Essayer de détecter la langue depuis les langues déclarées
+                if !p.record.langs.is_empty() {
+                    p.record.langs.first().map(|s| s.as_str()).unwrap_or("unknown")
+                } else {
+                    "unknown"
+                }
+            }).collect();
+            let possibly_sensitives: Vec<bool> = chunk.iter().map(|_| false).collect();
+            
+            // Métriques Bluesky
+            let retweet_counts: Vec<i64> = chunk.iter().map(|p| p.repost_count as i64).collect();
+            let reply_counts: Vec<i64> = chunk.iter().map(|p| p.reply_count as i64).collect();
+            let quote_counts: Vec<i64> = chunk.iter().map(|p| p.quote_count as i64).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.tweet (id, created_at, published_time, user_id, user_name, user_screen_name, 
+                   text, source, language, possibly_sensitive, retweet_count, reply_count, quote_count)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::bigint[], $4::text[], $5::text[], $6::text[],
+                   $7::text[], $8::text[], $9::text[], $10::bool[], $11::bigint[], $12::bigint[], $13::bigint[])
+                ON CONFLICT (id) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(id_refs).bind(created_ats).bind(published_times).bind(user_ids)
+                .bind(user_names).bind(user_screen_names).bind(texts).bind(sources)
+                .bind(languages).bind(possibly_sensitives).bind(retweet_counts)
+                .bind(reply_counts).bind(quote_counts)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky posts error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_corpus(&self, corpus: &[(String, String)]) -> Result<(), WebError> {
+        if corpus.is_empty() { return Ok(()); }
+        
+        const BATCH_SIZE: usize = 1000;
+        for chunk in corpus.chunks(BATCH_SIZE) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(post_id, _)| post_id.as_str()).collect();
+            let texts: Vec<&str> = chunk.iter().map(|(_, text)| text.as_str()).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.corpus (tweet_id, corpus)
+                SELECT * FROM UNNEST($1::text[], $2::text[])
+                ON CONFLICT (tweet_id) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(texts)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky corpus error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_replies(&self, replies: &[(String, String, String, String)]) -> Result<(), WebError> {
+        if replies.is_empty() { return Ok(()); }
+        
+        const BATCH_SIZE: usize = 1000;
+        for chunk in replies.chunks(BATCH_SIZE) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(post_id, _, _, _)| post_id.as_str()).collect();
+            let reply_to_tweet_ids: Vec<&str> = chunk.iter().map(|(_, parent_id, _, _)| parent_id.as_str()).collect();
+            let reply_to_user_ids: Vec<&str> = chunk.iter().map(|(_, _, user_id, _)| user_id.as_str()).collect();
+            let screen_names: Vec<&str> = chunk.iter().map(|(_, _, _, screen_name)| screen_name.as_str()).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.reply (tweet_id, in_reply_to_tweet_id, in_reply_to_user_id, in_reply_to_screen_name)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])
+                ON CONFLICT (tweet_id) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(reply_to_tweet_ids).bind(reply_to_user_ids).bind(screen_names)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky replies error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_emojis(&self, emojis: &[(String, String, i32)], batch_size: usize) -> Result<(), WebError> {
+        if emojis.is_empty() { return Ok(()); }
+        
+        for chunk in emojis.chunks(batch_size) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(post_id, _, _)| post_id.as_str()).collect();
+            let emoji_chars: Vec<&str> = chunk.iter().map(|(_, emoji, _)| emoji.as_str()).collect();
+            let orders: Vec<i32> = chunk.iter().map(|(_, _, order)| *order).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.tweet_emoji (tweet_id, emoji, "order")
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[])
+                ON CONFLICT (tweet_id, emoji) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(emoji_chars).bind(orders)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky emojis error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_hashtags(&self, hashtags: &[(String, String, i32, i32)], batch_size: usize) -> Result<(), WebError> {
+        if hashtags.is_empty() { return Ok(()); }
+        
+        for chunk in hashtags.chunks(batch_size) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(tweet_id, _, _, _)| tweet_id.as_str()).collect();
+            let hashtag_tags: Vec<&str> = chunk.iter().map(|(_, hashtag, _, _)| hashtag.as_str()).collect();
+            let orders: Vec<i32> = chunk.iter().map(|(_, _, order, _)| *order).collect();
+            let starts: Vec<i32> = chunk.iter().map(|(_, _, _, start)| *start).collect();
+            // Bluesky n'a pas d'end indices dans les facets, on utilise start + longueur
+            let ends: Vec<i32> = chunk.iter().map(|(_, hashtag, _, start)| *start + hashtag.len() as i32).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.tweet_hashtag (tweet_id, hashtag, "order", start_indice, end_indice)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[], $4::int[], $5::int[])
+                ON CONFLICT (tweet_id, hashtag) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(hashtag_tags).bind(orders).bind(starts).bind(ends)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky hashtags error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_urls(&self, urls: &[(String, String, i32, i32)], batch_size: usize) -> Result<(), WebError> {
+        if urls.is_empty() { return Ok(()); }
+        
+        for chunk in urls.chunks(batch_size) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(tweet_id, _, _, _)| tweet_id.as_str()).collect();
+            let url_strings: Vec<&str> = chunk.iter().map(|(_, url, _, _)| url.as_str()).collect();
+            let orders: Vec<i32> = chunk.iter().map(|(_, _, order, _)| *order).collect();
+            let starts: Vec<i32> = chunk.iter().map(|(_, _, _, start)| *start).collect();
+            // Bluesky n'a pas d'end indices dans les facets, on utilise start + longueur
+            let ends: Vec<i32> = chunk.iter().map(|(_, url, _, start)| *start + url.len() as i32).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.tweet_url (tweet_id, url, "order", start_indice, end_indice)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[], $4::int[], $5::int[])
+                ON CONFLICT (tweet_id, url) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(url_strings).bind(orders).bind(starts).bind(ends)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky URLs error: {}", e)))?;
+        }
+        Ok(())
+    }
+
+    async fn bulk_insert_bluesky_media(&self, posts: &[Post]) -> Result<(), WebError> {
+        let mut media_pairs = Vec::new();
+        
+        // Extraire les médias des posts Bluesky
+        for post in posts {
+            let tweet_id = Self::extract_tweet_id(&post.uri);
+            
+            if let Some(embed) = &post.embed {
+                // Traiter les images
+                if let Some(images) = embed.get("images") {
+                    if let Some(images_array) = images.as_array() {
+                        for (order, image) in images_array.iter().enumerate() {
+                            if let Some(fullsize) = image.get("fullsize") {
+                                if let Some(media_url) = fullsize.as_str() {
+                                    media_pairs.push((tweet_id.clone(), media_url.to_string(), "image".to_string(), order as i32));
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Traiter les vidéos
+                if let Some(video) = embed.get("video") {
+                    if let Some(playlist) = video.get("playlist") {
+                        if let Some(media_url) = playlist.as_str() {
+                            media_pairs.push((tweet_id.clone(), media_url.to_string(), "video".to_string(), 0));
+                        }
+                    }
+                }
+                
+                // Traiter les liens externes
+                if let Some(external) = embed.get("external") {
+                    if let Some(uri) = external.get("uri") {
+                        if let Some(media_url) = uri.as_str() {
+                            let media_type = if media_url.contains("youtube.com") || media_url.contains("youtu.be") {
+                                "video"
+                            } else if media_url.contains("instagram.com") || media_url.contains("tiktok.com") {
+                                "social_media"
+                            } else {
+                                "link"
+                            };
+                            media_pairs.push((tweet_id.clone(), media_url.to_string(), media_type.to_string(), 0));
+                        }
+                    }
+                }
+            }
+        }
+        
+        if media_pairs.is_empty() {
+            return Ok(());
+        }
+        
+        for chunk in media_pairs.chunks(1000) {
+            let tweet_ids: Vec<&str> = chunk.iter().map(|(post_id, _, _, _)| post_id.as_str()).collect();
+            let media_urls: Vec<&str> = chunk.iter().map(|(_, url, _, _)| url.as_str()).collect();
+            let media_types: Vec<&str> = chunk.iter().map(|(_, _, type_field, _)| type_field.as_str()).collect();
+            let orders: Vec<i32> = chunk.iter().map(|(_, _, _, order)| *order).collect();
+            
+            let query = format!(
+                r#"INSERT INTO {}.tweet_media (tweet_id, media_url, type, "order")
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[])
+                ON CONFLICT (tweet_id, media_url) DO NOTHING"#, self.schema_name
+            );
+            
+            sqlx::query(&query)
+                .bind(tweet_ids).bind(media_urls).bind(media_types).bind(orders)
+                .execute(&self.pool).await
+                .map_err(|e| WebError::WTFError(format!("Bulk insert Bluesky media error: {}", e)))?;
+        }
         Ok(())
     }
 } 

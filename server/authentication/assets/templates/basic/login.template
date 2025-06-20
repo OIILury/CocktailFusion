@@ -108,48 +108,31 @@
         <div class="slick-container">
           <div class="slick slick-connection">
             <div>
-              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Atol.png" }}" alt="AtolCD" />
-            </div>
-            <dv>
-              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/BpiFrance.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Cimeos.png" }}" alt="CIMEOS" />
             </div>
             <div>
-              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Cimeos.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/CSGA.png" }}" alt="CSGA" />
             </div>
             <div>
-              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/CSGA.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/DijonMetropole.png" }}" alt="Dijon Metropole"/>
             </div>
             <div>
-              <img
-                src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/DijonMetropole.png" }}"
-                alt="AtolCD"
-              />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Elliadd.png" }}" alt="Elliadd" />
             </div>
             <div>
-              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Elliadd.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Lib.png" }}" alt="Lib"/>
             </div>
             <div>
-              <img
-              src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/InvestirAvenir.png" }}"
-                alt="AtolCD"
-              />
-            </div>
-          <div><img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Lib.png" }}" alt="AtolCD" /></div>
-            <div>
-            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/MSHD.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/MSHD.png" }}" alt="MSH Dijon" />
             </div>
             <div>
-            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/RegionUE.png" }}" alt="AtolCD" />
-            </div>
-          <div><img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/TIL.png" }}" alt="AtolCD" /></div>
-            <div>
-            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/UBFC.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/RegionUE.png" }}" alt="RegionUE" />
             </div>
             <div>
-            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/Vitagora.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/TIL.png" }}" alt="TIL" />
             </div>
             <div>
-            <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/WebDrone.png" }}" alt="AtolCD" />
+              <img src="{{ pathjoin .ActionEndpoint "/assets/img/connexion/carousel/UBFC.png" }}" alt="UBFC" />
             </div>
           </div>
         </div>

@@ -31,6 +31,14 @@ pub enum WebError {
   Community(String),
   #[error("Export impossible : {0}")]
   ExportImpossible(String),
+  #[error("Accès interdit : {0}")]
+  Forbidden(String),
+  #[error("Requête invalide : {0}")]
+  BadRequest(String),
+  #[error("Erreur de base de données : {0}")]
+  DatabaseError(String),
+  #[error("Erreur serveur interne : {0}")]
+  InternalServerError(String),
 }
 
 impl IntoResponse for WebError {

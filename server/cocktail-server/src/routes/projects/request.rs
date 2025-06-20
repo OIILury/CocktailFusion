@@ -69,6 +69,7 @@ pub async fn request(
       request_path: paths::ProjectRequest { project_id },
       collect_path: paths::ProjectCollect { project_id },
       import_path: paths::ProjectImport { project_id },
+      export_path: paths::ProjectCsvExport { project_id },
       request_params,
       popup_hashtags_path: paths::PopupHashtags { project_id },
       popup_keywords_path: paths::PopupKeywords { project_id },

@@ -8,8 +8,8 @@ use axum::{
   headers::{HeaderMap, HeaderValue},
   http::{header::CONTENT_TYPE, Request, StatusCode, Uri},
   middleware::{self, Next},
-  response::{IntoResponse, Response},
-  routing::get,
+  response::{IntoResponse, Response, Redirect},
+  routing::{get, post},
   BoxError, Extension, Router,
 };
 use axum_extra::routing::RouterExt;
@@ -28,6 +28,7 @@ use routes::auth::{auth_login, auth_registration};
 use serde::de::{self, IntoDeserializer};
 use serde_json::json;
 use sqlx::{
+  postgres::{PgPool, PgPoolOptions},
   sqlite::{SqliteConnectOptions, SqlitePoolOptions},
   ConnectOptions,
 };
@@ -41,7 +42,7 @@ use crate::{
     home, index,
     projects::{
       basket::*, collect::*, daterange::*, delete::*, download::*, duplicate::*, hashtags::*, nouveau::*,
-      projects, rename::*, request::*, update::*, import::*,
+      projects, rename::*, request::*, update::*, import::*, csv_export::*,
     },
     study::{analysis::*, authors::*, communities::*, results},
     csv_import,
@@ -54,6 +55,7 @@ pub mod error;
 mod helpers;
 mod models;
 mod routes;
+pub mod utils;
 
 // const PATH_TEMPLATES: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth");
 // const PATH_PARTIALS: &str = concat!(std::env!("CARGO_MANIFEST_DIR"), "/templates/auth/partials");
@@ -62,6 +64,7 @@ mod routes;
 pub struct AppState {
   pub db: WebDatabase,
   pub topk_db: TopKDatabase,
+  pub pg_pool: PgPool,
   pub index: fts::Index,
   pub kratos_configuration: Configuration,
   pub kratos_browser_url: String,
@@ -81,6 +84,12 @@ impl Default for AppState {
         .expect("Failed to create pool")
     );
     
+    // Créer le pool PostgreSQL partagé
+    let pg_pool = PgPoolOptions::new()
+        .max_connections(5) // Limiter à 5 connexions
+        .connect_lazy(&database_url)
+        .expect("Failed to create PostgreSQL pool");
+    
     // Créer le chemin vers l'index Tantivy
     let tantivy_path = std::path::PathBuf::from("tantivy-data/public");
     
@@ -90,6 +99,7 @@ impl Default for AppState {
         sqlx::sqlite::SqlitePool::connect_lazy(&sqlite_url)
           .expect("Failed to create topk pool")
       ),
+      pg_pool,
       index: fts::retrieve_index(tantivy_path.clone()).expect("Failed to retrieve index"),
       kratos_configuration: Configuration::new(),
       kratos_browser_url: String::new(),
@@ -116,6 +126,12 @@ impl FromRef<AppState> for WebDatabase {
 impl FromRef<AppState> for TopKDatabase {
   fn from_ref(input: &AppState) -> Self {
     input.topk_db.clone()
+  }
+}
+
+impl FromRef<AppState> for PgPool {
+  fn from_ref(input: &AppState) -> Self {
+    input.pg_pool.clone()
   }
 }
 
@@ -205,10 +221,18 @@ pub async fn run(
 
   let turbo_stream = middleware::from_fn(turbo_stream);
 
+  // Créer le pool PostgreSQL partagé
+  let pg_pool = PgPoolOptions::new()
+    .max_connections(5) // Limiter à 5 connexions max
+    .connect(&databases.pg_uri)
+    .await
+    .expect("erreur : impossible de se connecter à PostgreSQL.");
+
   let search_index = fts::retrieve_index(tantivy_path.clone())?;
   let state = AppState {
     db: WebDatabase::new(pool),
     topk_db: TopKDatabase::new(pool_topk),
+    pg_pool,
     index: search_index,
     kratos_configuration,
     database_url: databases.pg_uri,
@@ -274,6 +298,13 @@ pub async fn run(
     .typed_post(update_collection)
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
+    .route("/projets/:project_id/export", get(csv_export))
+    // Nouvelles routes API pour l'export amélioré
+    .route("/api/export/estimate", post(routes::export_api::estimate_export))
+    .route("/api/export/start", post(routes::export_api::start_export))
+    .route("/api/export/progress/:export_id", get(routes::export_api::get_export_progress))
+    .route("/api/export/cancel/:export_id", post(routes::export_api::cancel_export))
+    .route("/api/export/download/:export_id", get(routes::export_api::download_export))
     .merge(csv_import::routes())
     .merge(automation::routes())
     .fallback(fallback)
@@ -339,51 +370,41 @@ where
     .await;
 
     if session_result.is_err() {
-      let cookies = headers.get("cookie").and_then(|c| c.to_str().ok());
-
-      let mut user_id = "".to_string();
-
-      if cookies.is_some() && cookies.unwrap().contains("user_id=") {
-        let cookie = cookies.unwrap()[cookies.unwrap().find("user_id=").unwrap() + 8..].to_string();
-        user_id = cookie[..cookie.find(";").unwrap_or(cookie.len())].to_string();
-      }
-      Ok(AuthenticatedUser {
-        niveau: 0,
-        last_login_datetime,
-        user_id,
-      })
-    } else {
-      let session = session_result.unwrap();
-
-      let traits = session.identity.traits.unwrap_or_default();
-
-      let niveau = traits
-        .get("niveau")
-        .unwrap_or(&json!(0))
-        .as_i64()
-        .unwrap_or_default();
-      let user_id = traits
-        .get("email")
-        .unwrap_or(&json!(""))
-        .as_str()
-        .unwrap_or_default()
-        .to_string();
-
-      if session.authenticated_at.is_some() {
-        last_login_datetime =
-          NaiveDateTime::parse_from_str(&session.authenticated_at.unwrap(), "%Y-%m-%dT%H:%M:%S%Z")
-            .unwrap_or(NaiveDateTime::new(
-              NaiveDate::from_ymd(1970, 1, 1),
-              NaiveTime::from_hms(0, 0, 0),
-            ));
-      }
-
-      Ok(AuthenticatedUser {
-        niveau,
-        last_login_datetime,
-        user_id,
-      })
+      return Err(Redirect::to("/auth/login").into_response());
     }
+
+    let session = session_result.unwrap();
+    let traits = session.identity.traits.unwrap_or_default();
+
+    // Vérifier que les traits requis sont présents et valides
+    let niveau = match traits.get("niveau") {
+      Some(n) => n.as_i64().unwrap_or(0),
+      None => return Err(Redirect::to("/auth/login").into_response()),
+    };
+
+    let user_id = match traits.get("email") {
+      Some(e) => e.as_str().unwrap_or_default().to_string(),
+      None => return Err(Redirect::to("/auth/login").into_response()),
+    };
+
+    if user_id.is_empty() {
+      return Err(Redirect::to("/auth/login").into_response());
+    }
+
+    if session.authenticated_at.is_some() {
+      last_login_datetime =
+        NaiveDateTime::parse_from_str(&session.authenticated_at.unwrap(), "%Y-%m-%dT%H:%M:%S%Z")
+          .unwrap_or(NaiveDateTime::new(
+            NaiveDate::from_ymd(1970, 1, 1),
+            NaiveTime::from_hms(0, 0, 0),
+          ));
+    }
+
+    Ok(AuthenticatedUser {
+      niveau,
+      last_login_datetime,
+      user_id,
+    })
   }
 }
 

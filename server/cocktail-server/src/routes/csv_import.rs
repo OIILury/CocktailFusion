@@ -3,7 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
     http::StatusCode,
     Json,
-    routing::post,
+    routing::{post, get},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -12,24 +12,143 @@ use sqlx::postgres::PgPool;
 use chrono::Local;
 use tracing::{info, error, warn, debug};
 use crate::routes::automation::run_automation_pipeline;
+use crate::utils::csv_analyzer::{CsvAnalyzer, CsvAnalysis};
 use csv;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CsvImportResponse {
     message: String,
     rows_imported: usize,
+    errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CsvAnalysisResponse {
+    analysis: CsvAnalysis,
+    schema_name: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ImportParams {
     project_id: Option<String>,
+    schema_name: Option<String>,
+    source: Option<String>,
+    analysis: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AnalysisParams {
+    project_id: Option<String>,
 }
 
 pub fn routes() -> Router {
     Router::new()
+        .route("/api/import/csv/analyze", post(analyze_csv))
         .route("/api/import/csv", post(import_csv))
 }
 
+async fn analyze_csv(
+    query: Query<AnalysisParams>,
+    multipart: Multipart,
+) -> impl IntoResponse {
+    info!("Début de l'analyse CSV");
+    
+    match analyze_csv_internal(multipart, query.project_id.clone()).await {
+        Ok(response) => {
+            info!("Analyse CSV réussie");
+            response
+        },
+        Err(e) => {
+            error!("Erreur lors de l'analyse CSV: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(CsvAnalysisResponse {
+                analysis: CsvAnalysis {
+                    total_rows: 0,
+                    total_columns: 0,
+                    headers: Vec::new(),
+                    preview: Vec::new(),
+                    encoding: String::new(),
+                    delimiter: ',',
+                    potential_issues: Vec::new(),
+                    data_types: std::collections::HashMap::new(),
+                },
+                schema_name: String::new(),
+            })).into_response()
+        }
+    }
+}
+
+async fn analyze_csv_internal(
+    mut multipart: Multipart,
+    _project_id: Option<String>,
+) -> Result<Response, Box<dyn Error>> {
+    debug!("Récupération du contenu des fichiers CSV pour analyse");
+    let mut files_content = Vec::new();
+    let mut _import_mode = String::from("single");
+
+    while let Some(mut field) = multipart.next_field().await? {
+        match field.name() {
+            Some("files") => {
+                // Lire le contenu par morceaux
+                let mut content = Vec::new();
+                let mut chunk = Vec::with_capacity(8192); // Buffer de 8KB
+                
+                while let Some(data) = field.chunk().await? {
+                    chunk.extend_from_slice(&data);
+                    if chunk.len() >= 8192 {
+                        content.extend_from_slice(&chunk);
+                        chunk.clear();
+                    }
+                }
+                if !chunk.is_empty() {
+                    content.extend_from_slice(&chunk);
+                }
+                
+                let content_str = String::from_utf8(content)?;
+                files_content.push(content_str);
+            },
+            Some("mode") => {
+                _import_mode = String::from_utf8(field.bytes().await?.to_vec())?;
+            },
+            _ => {}
+        }
+    }
+
+    if files_content.is_empty() {
+        warn!("Aucun fichier CSV n'a été fourni pour l'analyse");
+        return Err("Aucun fichier CSV fourni".into());
+    }
+
+    // Créer le nom du schéma basé sur la date
+    let schema_name = format!("import_{}", Local::now().format("%Y%m%d"));
+    
+    // Analyser le premier fichier
+    let mut analyzer = CsvAnalyzer::new(files_content[0].clone());
+    let analysis = analyzer.analyze()?;
+
+    Ok((StatusCode::OK, Json(CsvAnalysisResponse {
+        analysis,
+        schema_name,
+    })).into_response())
+}
+
+// Modification de la fonction handle_error pour retourner le bon type
+fn handle_error(error: Box<dyn Error>) -> Response {
+    let error_message = match error.to_string().as_str() {
+        "Format de données invalide" => "Le format des données n'est pas valide",
+        "Format de date invalide" => "Le format de date n'est pas valide",
+        "Caractères non autorisés détectés" => "Le fichier contient des caractères non autorisés",
+        "Champ trop long" => "Certains champs dépassent la longueur maximale autorisée",
+        _ => "Une erreur est survenue lors de l'importation"
+    };
+
+    (StatusCode::BAD_REQUEST, Json(CsvImportResponse {
+        message: error_message.to_string(),
+        rows_imported: 0,
+        errors: vec![error_message.to_string()],
+    })).into_response()
+}
+
+// Modification de la fonction import_csv pour utiliser la nouvelle gestion d'erreurs
 async fn import_csv(
     query: Query<ImportParams>,
     multipart: Multipart,
@@ -37,17 +156,14 @@ async fn import_csv(
     info!("Début de l'importation CSV");
     let database_url = std::env::var("PG_DATABASE_URL").expect("PG_DATABASE_URL must be set");
     
-    match import_csv_internal(database_url, multipart, query.project_id.clone()).await {
+    match import_csv_internal(database_url, multipart, query.project_id.clone(), query.schema_name.clone(), query.source.clone(), query.analysis.clone()).await {
         Ok(response) => {
             info!("Importation CSV réussie");
             response
         },
         Err(e) => {
             error!("Erreur lors de l'importation CSV: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(CsvImportResponse {
-                message: format!("Erreur lors de l'import : {}", e),
-                rows_imported: 0,
-            })).into_response()
+            handle_error(e)
         }
     }
 }
@@ -56,6 +172,9 @@ async fn import_csv_internal(
     database_url: String,
     mut multipart: Multipart,
     project_id: Option<String>,
+    schema_name: Option<String>,
+    source: Option<String>,
+    analysis: Option<String>,
 ) -> Result<Response, Box<dyn Error>> {
     debug!("Récupération du contenu des fichiers CSV");
     let mut files_content = Vec::new();
@@ -70,6 +189,9 @@ async fn import_csv_internal(
             Some("mode") => {
                 import_mode = String::from_utf8(field.bytes().await?.to_vec())?;
             },
+            Some("analysis") => {
+                continue;
+            },
             _ => {}
         }
     }
@@ -79,20 +201,30 @@ async fn import_csv_internal(
         return Err("Aucun fichier CSV fourni".into());
     }
 
-    // Créer le nom du schéma basé sur la date
-    let schema_name = format!("import_{}", Local::now().format("%Y%m%d"));
-    info!("Création du schéma: {}", schema_name);
+    // Utiliser le schéma fourni ou en créer un nouveau
+    let schema_name = schema_name.unwrap_or_else(|| format!("import_{}", Local::now().format("%Y%m%d")));
+    info!("Utilisation du schéma: {}", schema_name);
     
     // Créer la connexion à la base de données
     let pool = PgPool::connect(&database_url).await?;
     
-    // Supprimer le schéma s'il existe déjà
-    sqlx::query(&format!(
-        "DROP SCHEMA IF EXISTS {} CASCADE",
-        schema_name
-    ))
-    .execute(&pool)
+    // Vérifier si le schéma existe déjà
+    let schema_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = $1)"
+    )
+    .bind(&schema_name)
+    .fetch_one(&pool)
     .await?;
+
+    if schema_exists {
+        // Supprimer le schéma existant
+        sqlx::query(&format!(
+            "DROP SCHEMA IF EXISTS {} CASCADE",
+            schema_name
+        ))
+        .execute(&pool)
+        .await?;
+    }
     
     // Créer le schéma
     sqlx::query(&format!(
@@ -107,21 +239,24 @@ async fn import_csv_internal(
 
     let mut total_rows_imported = 0;
     let mut total_errors = 0;
+    let mut error_messages = Vec::new();
 
     if import_mode == "single" {
         // Mode fichier unique
         if files_content.len() > 1 {
             return Err("Mode fichier unique sélectionné mais plusieurs fichiers fournis".into());
         }
-        let (rows_imported, errors) = process_single_file(&pool, &schema_name, &files_content[0]).await?;
+        let (rows_imported, errors, errors_list) = process_single_file(&pool, &schema_name, &files_content[0], &source).await?;
         total_rows_imported += rows_imported;
         total_errors += errors;
+        error_messages.extend(errors_list);
     } else {
         // Mode fichiers multiples
         for content in files_content {
-            let (rows_imported, errors) = process_multiple_files(&pool, &schema_name, &content).await?;
+            let (rows_imported, errors, errors_list) = process_multiple_files(&pool, &schema_name, &content, &source).await?;
             total_rows_imported += rows_imported;
             total_errors += errors;
+            error_messages.extend(errors_list);
         }
     }
 
@@ -135,6 +270,7 @@ async fn import_csv_internal(
             return Ok((StatusCode::INTERNAL_SERVER_ERROR, Json(CsvImportResponse {
                 message: format!("Import réussi mais erreur lors de l'automatisation : {}", e),
                 rows_imported: total_rows_imported,
+                errors: error_messages,
             })).into_response());
         }
     }
@@ -142,6 +278,7 @@ async fn import_csv_internal(
     Ok((StatusCode::OK, Json(CsvImportResponse {
         message: format!("Import réussi avec {} erreurs", total_errors),
         rows_imported: total_rows_imported,
+        errors: error_messages,
     })).into_response())
 }
 
@@ -215,14 +352,50 @@ async fn create_tables(pool: &PgPool, schema_name: &str) -> Result<(), Box<dyn E
     Ok(())
 }
 
-async fn process_single_file(pool: &PgPool, schema_name: &str, content: &str) -> Result<(usize, usize), Box<dyn Error>> {
+// Modification de la fonction process_batch pour utiliser la nouvelle signature
+async fn process_batch(
+    pool: &PgPool,
+    schema_name: &str,
+    batch: Vec<Vec<String>>,
+    source: &Option<String>,
+) -> Result<(usize, usize, Vec<String>), Box<dyn Error>> {
     let mut rows_imported = 0;
     let mut errors = 0;
+    let mut error_messages = Vec::new();
+    let mut transaction = pool.begin().await?;
+
+    for fields in batch {
+        let str_fields: Vec<&str> = fields.iter().map(|s| s.as_str()).collect();
+        match process_tweet_record(&mut transaction, schema_name, &str_fields, source).await {
+            Ok(_) => rows_imported += 1,
+            Err(e) => {
+                errors += 1;
+                error_messages.push(e.to_string());
+            }
+        }
+    }
+
+    transaction.commit().await?;
+    Ok((rows_imported, errors, error_messages))
+}
+
+// Modification de la fonction process_single_file pour utiliser le traitement par lots
+async fn process_single_file(pool: &PgPool, schema_name: &str, content: &str, source: &Option<String>) -> Result<(usize, usize, Vec<String>), Box<dyn Error>> {
+    let mut rows_imported = 0;
+    let mut errors = 0;
+    let mut error_messages = Vec::new();
     let mut first_line = true;
+    let mut _headers = Vec::new();
+    let mut current_batch = Vec::new();
+    const BATCH_SIZE: usize = 1000;
+    
+    // Déterminer la source
+    let _source_type = source.as_deref().unwrap_or("twitter");
     
     for line in content.lines() {
         if first_line {
             debug!("En-tête CSV: {}", line);
+            _headers = line.split(',').map(|h| h.trim_matches('"').to_string()).collect();
             first_line = false;
             continue;
         }
@@ -234,36 +407,46 @@ async fn process_single_file(pool: &PgPool, schema_name: &str, content: &str) ->
         if let Some(result) = rdr.records().next() {
             match result {
                 Ok(record) => {
-                    let fields: Vec<&str> = record.iter().collect();
-                    if fields.len() >= 10 {
-                        match process_tweet_record(pool, schema_name, &fields).await {
-                            Ok(_) => rows_imported += 1,
-                            Err(e) => {
-                                error!("Erreur lors du traitement de la ligne: {}", e);
-                                errors += 1;
-                            }
-                        }
-                    } else {
-                        warn!("Ligne ignorée (format invalide): {}", line);
-                        errors += 1;
+                    let fields: Vec<String> = record.iter().map(|s| s.to_string()).collect();
+                    current_batch.push(fields);
+
+                    // Traiter le lot quand il atteint la taille maximale
+                    if current_batch.len() >= BATCH_SIZE {
+                        let (batch_rows, batch_errors, batch_messages) = 
+                            process_batch(pool, schema_name, current_batch, source).await?;
+                        rows_imported += batch_rows;
+                        errors += batch_errors;
+                        error_messages.extend(batch_messages);
+                        current_batch = Vec::new();
                     }
                 },
                 Err(e) => {
                     error!("Erreur lors de la lecture de la ligne: {}", e);
                     errors += 1;
+                    error_messages.push(format!("Erreur lors de la lecture de la ligne: {}", e));
                 }
             }
         }
     }
 
-    Ok((rows_imported, errors))
+    // Traiter le dernier lot s'il reste des données
+    if !current_batch.is_empty() {
+        let (batch_rows, batch_errors, batch_messages) = 
+            process_batch(pool, schema_name, current_batch, source).await?;
+        rows_imported += batch_rows;
+        errors += batch_errors;
+        error_messages.extend(batch_messages);
+    }
+
+    Ok((rows_imported, errors, error_messages))
 }
 
-async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str) -> Result<(usize, usize), Box<dyn Error>> {
+async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str, source: &Option<String>) -> Result<(usize, usize, Vec<String>), Box<dyn Error>> {
     let mut rows_imported = 0;
     let mut errors = 0;
     let mut first_line = true;
     let mut table_name = String::new();
+    let mut error_messages = Vec::new();
     
     // Stocker temporairement les données pour les insérer dans le bon ordre
     let mut tweets_to_insert = Vec::new();
@@ -299,26 +482,32 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
                         _ => {
                             error!("Type de table inconnu: {}", table_name);
                             errors += 1;
-                            }
+                            error_messages.push(format!("Type de table inconnu: {}", table_name));
+                        }
                     }
                 },
                 Err(e) => {
                     error!("Erreur lors de la lecture de la ligne: {}", e);
                     errors += 1;
+                    error_messages.push(format!("Erreur lors de la lecture de la ligne: {}", e));
                 }
             }
         }
     }
 
+    // Créer une transaction pour toutes les opérations
+    let mut transaction = pool.begin().await?;
+
     // Insérer les données dans l'ordre correct
     // 1. D'abord les tweets
     for fields in tweets_to_insert {
         let str_fields: Vec<&str> = fields.iter().map(|s| s.as_str()).collect();
-        match process_tweet_record(pool, schema_name, &str_fields).await {
+        match process_tweet_record(&mut transaction, schema_name, &str_fields, source).await {
             Ok(_) => rows_imported += 1,
             Err(e) => {
                 error!("Erreur lors du traitement du tweet: {}", e);
                 errors += 1;
+                error_messages.push(e.to_string());
             }
         }
     }
@@ -332,12 +521,13 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
             ))
             .bind(&fields[0])
             .bind(&fields[1])
-            .execute(pool)
+            .execute(&mut *transaction)
             .await {
                 Ok(_) => rows_imported += 1,
                 Err(e) => {
                     error!("Erreur lors de l'insertion du hashtag: {}", e);
                     errors += 1;
+                    error_messages.push(e.to_string());
                 }
             }
         }
@@ -352,12 +542,13 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
             ))
             .bind(&fields[0])
             .bind(&fields[1])
-            .execute(pool)
+            .execute(&mut *transaction)
             .await {
                 Ok(_) => rows_imported += 1,
                 Err(e) => {
                     error!("Erreur lors de l'insertion de l'URL: {}", e);
                     errors += 1;
+                    error_messages.push(e.to_string());
                 }
             }
         }
@@ -371,12 +562,13 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
                 schema_name
             ))
             .bind(&fields[0])
-            .execute(pool)
+            .execute(&mut *transaction)
             .await {
                 Ok(_) => rows_imported += 1,
                 Err(e) => {
                     error!("Erreur lors de l'insertion du retweet: {}", e);
                     errors += 1;
+                    error_messages.push(e.to_string());
                 }
             }
         }
@@ -390,12 +582,13 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
                 schema_name
             ))
             .bind(&fields[0])
-            .execute(pool)
+            .execute(&mut *transaction)
             .await {
                 Ok(_) => rows_imported += 1,
                 Err(e) => {
                     error!("Erreur lors de l'insertion de la réponse: {}", e);
                     errors += 1;
+                    error_messages.push(e.to_string());
                 }
             }
         }
@@ -404,23 +597,27 @@ async fn process_multiple_files(pool: &PgPool, schema_name: &str, content: &str)
     // 6. Enfin les citations
     for fields in quotes_to_insert {
         if !fields.is_empty() {
-                        match sqlx::query(&format!(
+            match sqlx::query(&format!(
                 "INSERT INTO {}.quote (quoted_tweet_id) VALUES ($1)",
                 schema_name
             ))
             .bind(&fields[0])
-            .execute(pool)
+            .execute(&mut *transaction)
             .await {
                 Ok(_) => rows_imported += 1,
                 Err(e) => {
                     error!("Erreur lors de l'insertion de la citation: {}", e);
                     errors += 1;
+                    error_messages.push(e.to_string());
                 }
             }
         }
     }
 
-    Ok((rows_imported, errors))
+    // Valider la transaction
+    transaction.commit().await?;
+
+    Ok((rows_imported, errors, error_messages))
 }
 
 fn determine_table_name(header: &str) -> String {
@@ -441,11 +638,88 @@ fn determine_table_name(header: &str) -> String {
     }
 }
 
-async fn process_tweet_record(pool: &PgPool, schema_name: &str, fields: &[&str]) -> Result<(), Box<dyn Error>> {
-    let created_at = chrono::NaiveDateTime::parse_from_str(fields[1], "%Y-%m-%d %H:%M:%S")?;
-    let published_time = created_at.timestamp_millis();
+// Ajout de la fonction de validation des données
+fn validate_and_sanitize_data(field: &str) -> Result<String, String> {
+    // Vérification des caractères dangereux
+    if field.contains(";") || field.contains("--") || field.contains("/*") || field.contains("*/") {
+        return Err("Caractères non autorisés détectés".to_string());
+    }
 
-    // Insérer d'abord le tweet
+    // Nettoyage des caractères spéciaux
+    let sanitized = field
+        .replace("'", "''") // Échapper les apostrophes
+        .replace("\"", "\\\"") // Échapper les guillemets
+        .trim()
+        .to_string();
+
+    // Vérification de la longueur
+    if sanitized.len() > 1000 {
+        return Err("Champ trop long".to_string());
+    }
+
+    Ok(sanitized)
+}
+
+// Modification de la fonction process_tweet_record pour utiliser la validation
+async fn process_tweet_record(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    schema_name: &str,
+    fields: &[&str],
+    source: &Option<String>
+) -> Result<(), Box<dyn Error>> {
+    // Validation des champs obligatoires avec valeurs par défaut
+    let tweet_id = fields.get(0).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| format!("tweet_{}", chrono::Utc::now().timestamp_millis()));
+    
+    let created_at = fields.get(1)
+        .and_then(|&s| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").ok())
+        .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+    
+    let published_time = created_at.timestamp_millis();
+    
+    let text = fields.get(4).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| String::from(""));
+    
+    let user_id = fields.get(1).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| String::from("unknown_user"));
+    
+    let user_name = fields.get(2).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| String::from("Unknown User"));
+    
+    let user_screen_name = fields.get(3).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| String::from("unknown"));
+    
+    let language = fields.get(8).map(|&s| validate_and_sanitize_data(s)).transpose()?
+        .unwrap_or_else(|| String::from("fr"));
+
+    // Validation des coordonnées avec valeurs par défaut
+    let coordinates_longitude = fields.get(9)
+        .and_then(|&s| s.parse::<f64>().ok())
+        .map(|v| v.to_string());
+    
+    let coordinates_latitude = fields.get(10)
+        .and_then(|&s| s.parse::<f64>().ok())
+        .map(|v| v.to_string());
+
+    // Validation des booléens avec valeur par défaut
+    let possibly_sensitive = fields.get(11)
+        .map(|&s| s.to_lowercase() == "true")
+        .unwrap_or(false);
+
+    // Validation des nombres avec valeurs par défaut
+    let retweet_count = fields.get(12)
+        .and_then(|&s| s.parse::<i32>().ok())
+        .unwrap_or(0);
+    
+    let reply_count = fields.get(13)
+        .and_then(|&s| s.parse::<i32>().ok())
+        .unwrap_or(0);
+    
+    let quote_count = fields.get(14)
+        .and_then(|&s| s.parse::<i32>().ok())
+        .unwrap_or(0);
+
+    // Insertion du tweet
     sqlx::query(&format!(
         r#"
         INSERT INTO {}.tweet 
@@ -456,106 +730,85 @@ async fn process_tweet_record(pool: &PgPool, schema_name: &str, fields: &[&str])
         "#,
         schema_name
     ))
-    .bind(fields[0])  // id
-    .bind(created_at)  // created_at
-    .bind(published_time)  // published_time
-    .bind(fields[6])  // text
-    .bind(fields[3])  // user_id
-    .bind(fields[4])  // user_name
-    .bind(fields[5])  // user_screen_name
-    .bind(fields[7])  // source
-    .bind(fields[8])  // language
-    .bind(fields[9].parse::<f64>().ok().map(|v| v.to_string()))  // coordinates_longitude
-    .bind(fields[10].parse::<f64>().ok().map(|v| v.to_string()))  // coordinates_latitude
-    .bind(fields[11].to_lowercase() == "true")  // possibly_sensitive
-    .bind(fields[12].parse::<i32>().unwrap_or(0))  // retweet_count
-    .bind(fields[13].parse::<i32>().unwrap_or(0))  // reply_count
-    .bind(fields[14].parse::<i32>().unwrap_or(0))  // quote_count
-    .execute(pool)
+    .bind(&tweet_id)
+    .bind(created_at)
+    .bind(published_time)
+    .bind(&text)
+    .bind(&user_id)
+    .bind(&user_name)
+    .bind(&user_screen_name)
+    .bind(source.as_ref().map(|s| s.as_str()))
+    .bind(&language)
+    .bind(&coordinates_longitude)
+    .bind(&coordinates_latitude)
+    .bind(possibly_sensitive)
+    .bind(retweet_count)
+    .bind(reply_count)
+    .bind(quote_count)
+    .execute(&mut **transaction)
     .await?;
 
-    // Stocker les données à insérer dans les tables liées
-    let mut hashtags_to_insert = Vec::new();
-    let mut urls_to_insert = Vec::new();
-    let mut is_retweet = false;
-    let mut is_reply = false;
-    let mut is_quote = false;
-
-    // Collecter les hashtags
+    // Traitement des hashtags et URLs par lots
     if fields.len() > 15 {
-        hashtags_to_insert = fields[15].split(',')
+        let hashtags: Vec<String> = fields[15].split(',')
             .filter(|s| !s.is_empty() && s.starts_with("#"))
+            .map(|s| validate_and_sanitize_data(s).unwrap_or_default())
             .collect();
+
+        if !hashtags.is_empty() {
+            let mut hashtag_values = Vec::new();
+            for hashtag in hashtags {
+                hashtag_values.push(format!("('{}', '{}')", tweet_id, hashtag));
+            }
+            
+            if !hashtag_values.is_empty() {
+                sqlx::query(&format!(
+                    "INSERT INTO {}.tweet_hashtag (tweet_id, hashtag) VALUES {}",
+                    schema_name,
+                    hashtag_values.join(",")
+                ))
+                .execute(&mut **transaction)
+                .await?;
+            }
+        }
     }
 
-    // Collecter les URLs
-    if fields.len() > 16 {
-        urls_to_insert = fields[16].split('|')
-            .filter(|s| !s.is_empty() && s.starts_with("http"))
-            .collect();
-    }
+    // Validation du type de tweet
+    let is_retweet = text.contains("RT @");
+    let is_reply = text.starts_with("@");
+    let is_quote = text.contains("https://twitter.com/");
 
-    // Vérifier le type de tweet
-    is_retweet = fields[6].contains("RT @");
-    is_reply = fields[6].starts_with("@");
-    is_quote = fields[6].contains("https://twitter.com/");
-
-    // Insérer les hashtags
-    for hashtag in hashtags_to_insert {
-        sqlx::query(&format!(
-            "INSERT INTO {}.tweet_hashtag (tweet_id, hashtag) VALUES ($1, $2)",
-            schema_name
-        ))
-        .bind(fields[0])
-        .bind(hashtag)
-        .execute(pool)
-        .await?;
-    }
-
-    // Insérer les URLs
-    for url in urls_to_insert {
-        sqlx::query(&format!(
-            "INSERT INTO {}.tweet_url (tweet_id, url) VALUES ($1, $2)",
-            schema_name
-        ))
-        .bind(fields[0])
-        .bind(url)
-        .execute(pool)
-        .await?;
-    }
-
-    // Insérer le retweet si nécessaire
+    // Insertion des relations
     if is_retweet {
         sqlx::query(&format!(
             "INSERT INTO {}.retweet (retweeted_tweet_id) VALUES ($1)",
             schema_name
         ))
-        .bind(fields[0])
-        .execute(pool)
+        .bind(&tweet_id)
+        .execute(&mut **transaction)
         .await?;
     }
 
-    // Insérer la réponse si nécessaire
     if is_reply {
         sqlx::query(&format!(
             "INSERT INTO {}.reply (in_reply_to_tweet_id) VALUES ($1)",
             schema_name
         ))
-        .bind(fields[0])
-        .execute(pool)
+        .bind(&tweet_id)
+        .execute(&mut **transaction)
         .await?;
     }
 
-    // Insérer la citation si nécessaire
     if is_quote {
         sqlx::query(&format!(
             "INSERT INTO {}.quote (quoted_tweet_id) VALUES ($1)",
             schema_name
         ))
-        .bind(fields[0])
-        .execute(pool)
+        .bind(&tweet_id)
+        .execute(&mut **transaction)
         .await?;
     }
 
+  
     Ok(())
 } 

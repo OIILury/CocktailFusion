@@ -26,7 +26,6 @@
 </head>
 
 <body class="page-accueil">
-  <!--{% block content %}{% endblock %}-->
   <header class="header-site">
     <div class="header__left">
       <div class="logo-site">
@@ -41,7 +40,6 @@
         <ul class="menu__list">
           <li class="menu__item" id="tuto--button"><span class="menu__link">Tutoriel de l'outil</span></li>
           <li class="menu__item"><a href="#" class="menu__link">À propos</a></li>
-          <!-- <li class="menu__item"><a href="#" class="menu__link">Découvrez nos offres</a></li> -->
           <li class="menu__item"><a href="#" class="menu__link">Nous contacter</a></li>
         </ul>
       </nav>
@@ -54,53 +52,28 @@
     <div class="mask" id="modal--plan" style="display: none">
     </div>
     {{/if}}
-    <section class="accueil-top">
+    <section class="accueil-top {{#unless is_login}}registration{{/unless}}">
       <div class="accueil-top__container">
         <div class="accueil-top__container__left">
-          <!--          <h3>Vous n'avez pas encore de compte&nbsp?</h3>-->
-          <!--          <a href="/auth/registration" class="button btn-signin">Inscrivez-vous&nbsp!</a>-->
           {{#if data}}
-          {{> ui.html ui=data.ui title="Se connecter" }}
+          {{> ui.html ui=data.ui title=pageTitle }}
           {{/if}}
         </div>
         <div class="accueil-top__container__right">
-          <h2 class="offer__main--title">Découvrez nos offres</h2>
+          <h2 class="offer__main--title">Découvrez nos possibilités</h2>
 
           <div class="offer--wrapper">
-            <div class="offer offer--public">
-              <!--
-              <h2 class="offer__title">Accès grand public</h2>
-              <ul class="offer__list">
-                <li class="offer__item"><span>Accès aux tweets agroalimentaires regroupés en corpus thématiques par les
-                    experts COCKTAIL</span></li>
-                <li class="offer__item"><span>Corpus d'analyse personnalisable sur hashtags</span></li>
-              </ul>
-              <a href="/projets" class="button btn-signin">Accéder</a>
-            -->
-            </div>
             <div class="offer offer--premium">
-              <h2 class="offer__title">Accès premium</h2>
+              <h2 class="offer__title">Les fonctionnalités</h2>
               <ul class="offer__list">
                 <li class="offer__item"><span>Collecte de messages depuis Twitter (X) et Bluesky</span></li>
                 <li class="offer__item"><span>Importation de données via fichiers CSV</span></li>
                 <li class="offer__item"><span>Analyse des messages par hashtags, comptes et mots-clés</span></li>
                 <li class="offer__item"><span>Visualisation graphique algorithmique des hashtags, comptes et communautés</span></li>
               </ul>
-              <a href="/projets" class="button btn-signin">Accéder</a>
-            </div>
-            
-            <div class="offer offer--expert">
-              <!--
-              <h2 class="offer__title">Accès expert</h2>
-              <ul class="offer__list">
-                <li class="offer__item"><span>Définition de la problématique d'étude avec des experts métier</span></li>
-                <li class="offer__item"><span>Paramétrage de la collecte de tweets avec des experts pour structurer les
-                    analyses</span></li>
-                <li class="offer__item"><span>Support expert</span></li>
-                <li class="offer__item"><span>Accès à l'intégralité des fonctionnalités d'analyse</span></li>
-              </ul>
-              <span class="button btn-signin" id="expert--button">S'abonner</span>
-              -->
+              {{#if is_login}}
+                  <a href="/projets" class="button btn-signin">Accéder</a>
+              {{/if}}
             </div>
           </div>
         </div>
@@ -152,23 +125,18 @@
 
     <div class="slick-container">
       <div class="slick slick-accueil">
-        <div><img src="/static/img/connexion/carousel/Atol.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/BpiFrance.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/Cimeos.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/CSGA.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/DijonMetropole.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/Elliadd.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/InvestirAvenir.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/Lib.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/MSHD.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/RegionUE.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/TIL.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/UBFC.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/Vitagora.png" alt="AtolCD"></div>
-        <div><img src="/static/img/connexion/carousel/WebDrone.png" alt="AtolCD"></div>
+        <div><img src="/static/img/connexion/carousel/Cimeos.png" alt="Cimeos"></div>
+        <div><img src="/static/img/connexion/carousel/CSGA.png" alt="CSGA"></div>
+        <div><img src="/static/img/connexion/carousel/DijonMetropole.png" alt="Dijon Metropole"></div>
+        <div><img src="/static/img/connexion/carousel/Elliadd.png" alt="Elliadd"></div>
+        <div><img src="/static/img/connexion/carousel/Lib.png" alt="Lib"></div>
+        <div><img src="/static/img/connexion/carousel/MSHD.png" alt="MSH Dijon"></div>
+        <div><img src="/static/img/connexion/carousel/RegionUE.png" alt="RegionUE"></div>
+        <div><img src="/static/img/connexion/carousel/TIL.png" alt="TIL"></div>
+        <div><img src="/static/img/connexion/carousel/UBFC.png" alt="UBFC"></div>
       </div>
     </div>
   </footer>
 </body>
 
-</html>
+</html> 

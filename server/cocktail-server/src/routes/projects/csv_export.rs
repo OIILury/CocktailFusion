@@ -1,24 +1,24 @@
 use axum::{
-    extract::{State, Query},
+    extract::State,
     response::IntoResponse,
     http::HeaderMap,
 };
 use ory_kratos_client::apis::configuration::Configuration;
-use serde::Deserialize;
 
 use crate::{
     error::WebError,
     get_logout_url,
     models::{
         auth::AuthenticatedUser,
-        templates::{HtmlTemplate, Collect},
+        templates::{HtmlTemplate, CsvExportTemplate},
     },
     routes::paths,
     AppState,
 };
+
 #[tracing::instrument]
-pub async fn collect(
-    paths::ProjectCollect { project_id }: paths::ProjectCollect,
+pub async fn csv_export(
+    paths::ProjectCsvExport { project_id }: paths::ProjectCsvExport,
     AuthenticatedUser {
         niveau,
         last_login_datetime,
@@ -32,20 +32,22 @@ pub async fn collect(
     let (include_count, exclude_count) =
         cocktail_db_web::include_exclude_hashtag_count(&state.db, project_id.to_hyphenated(), &user_id)
             .await?;
-    Ok(HtmlTemplate(Collect {
+
+    Ok(HtmlTemplate(CsvExportTemplate {
+        project_id: project_id.to_string(),
+        import_path: paths::ProjectImport { project_id },
+        export_path: paths::ProjectCsvExport { project_id },
+        collect_path: paths::ProjectCollect { project_id },
+        is_analyzed: project.is_analyzed == 1,
         daterange_path: paths::ProjectDateRange { project_id },
         hashtag_path: paths::ProjectHashtags { project_id },
         request_path: paths::ProjectRequest { project_id },
-        collect_path: paths::ProjectCollect { project_id },
-        import_path: paths::ProjectImport { project_id },
-        export_path: paths::ProjectCsvExport { project_id },
         delete_popup_path: paths::PopupDeleteProject { project_id },
         rename_popup_path: paths::PopupRenameProject { project_id },
-        duplicate_popup_path: paths::PopupDuplicateProject { project_id },
         download_path: paths::DownloadProject { project_id },
+        duplicate_popup_path: paths::PopupDuplicateProject { project_id },
         analysis_preview_popup_path: paths::PopupAnalysisPreview { project_id },
         analysis_path: paths::ProjectAnalysis { project_id },
-        is_analyzed: project.is_analyzed == 1,
         results_path: paths::ProjectResults { project_id },
         tweets_graph_path: paths::ProjectTweetsGraph { project_id },
         authors_path: paths::ProjectAuthors { project_id },
@@ -54,7 +56,7 @@ pub async fn collect(
         logout_url,
         include_count,
         exclude_count,
-        niveau,
+        niveau: niveau.into(),
         last_login_datetime,
         title: project.title,
         tweets_count: project.tweets_count,

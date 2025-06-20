@@ -1,4 +1,4 @@
-<div class="panel" {% if active_page=="collect" || active_page=="import" %}
+<div class="panel" {% if active_page=="collect" || active_page=="import" || active_page=="export" %}
   style="display: block;" {% endif %}>
   <a href="{{ collect_path }}" class='aside__item {% if active_page == "collect" %} active {% endif %}'>
     <div class="aside__item__left">
@@ -10,6 +10,12 @@
     <div class="aside__item__left">
       <span class="aside__item__icon icon-download"></span>
       <span class="aside__item__text">Réaliser une importation</span>
+    </div>
+  </a>
+  <a href="{{ export_path }}" class='aside__item {% if active_page == "export" %} active {% endif %}'>
+    <div class="aside__item__left">
+      <span class="aside__item__icon icon-download"></span>
+      <span class="aside__item__text">Exporter une base de donnée</span>
     </div>
   </a>
 </div>

@@ -20,11 +20,15 @@ pub mod study;
 pub mod csv_import;
 pub mod collect;
 pub mod automation;
+pub mod export_api;
 
 #[derive(Debug, Serialize)]
 pub struct Context {
   pub tweets: Vec<Tweet>,
   pub niveau: i64,
+  pub is_login: bool,
+  pub page_title: String,
+  pub data: Option<serde_json::Value>,
 }
 
 #[tracing::instrument]
@@ -58,9 +62,15 @@ pub async fn home(
       "text:lubrizol",
       &Some(OrderBy::RetweetCount),
     )?;
-    let data = Context { tweets, niveau };
+    let data = Context { 
+      tweets, 
+      niveau,
+      is_login: niveau > 0 && !user_id.is_empty(),
+      page_title: "Accueil".to_string(),
+      data: None,
+    };
     let content = handlebars_registry
-      .render("login.html", &data)
+      .render("auth.html", &data)
       .map_err(|e| WebError::WTFError(e.to_string()))?;
 
     Ok(Html(content).into_response())

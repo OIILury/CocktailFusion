@@ -12,7 +12,7 @@ use crate::{
     routes::paths::{
         ProjectCollect, StartCollection, DeleteCollection, UpdateCollection,
         ProjectDateRange, ProjectHashtags, ProjectRequest, ProjectImport,
-        PopupDeleteProject, PopupRenameProject, PopupDuplicateProject,
+        ProjectCsvExport, PopupDeleteProject, PopupRenameProject, PopupDuplicateProject,
         DownloadProject, PopupAnalysisPreview, ProjectAnalysis,
         ProjectResults, ProjectTweetsGraph, ProjectAuthors,
         ProjectResultHashtags, Communities
@@ -46,6 +46,7 @@ pub async fn collect(
         request_path: ProjectRequest { project_id: paths.project_id },
         collect_path: ProjectCollect { project_id: paths.project_id },
         import_path: ProjectImport { project_id: paths.project_id },
+        export_path: ProjectCsvExport { project_id: paths.project_id },
         delete_popup_path: PopupDeleteProject { project_id: paths.project_id },
         rename_popup_path: PopupRenameProject { project_id: paths.project_id },
         duplicate_popup_path: PopupDuplicateProject { project_id: paths.project_id },

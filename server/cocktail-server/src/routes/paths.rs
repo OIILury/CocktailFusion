@@ -263,3 +263,13 @@ pub struct DeleteCollection {
 pub struct UpdateCollection {
     pub project_id: Uuid,
 }
+
+#[derive(Debug, Deserialize, TypedPath)]
+#[typed_path("/api/schemas/list")]
+pub struct ListSchemas;
+
+#[derive(Debug, Deserialize, TypedPath)]
+#[typed_path("/projets/:project_id/clear-data")]
+pub struct ClearDataLatest {
+  pub project_id: Uuid,
+}

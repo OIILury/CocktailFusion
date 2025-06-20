@@ -106,68 +106,38 @@ lazy_static::lazy_static! {
 
 /// Fonction utilitaire pour trouver un schéma contenant des données pour le projet
 async fn find_data_schema(pg_pool: &sqlx::PgPool, project_id: &str) -> Result<String, WebError> {
-    // 1. D'abord, essayer le schéma du projet (comportement normal)
-    let project_schema_exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)"
+    // 1. D'abord, essayer le schéma data_latest (nouveau comportement)
+    let data_latest_exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'data_latest')"
     )
-    .bind(project_id)
     .fetch_one(pg_pool)
     .await
     .map_err(|e| {
-        tracing::error!("Erreur lors de la vérification du schéma de projet: {}", e);
+        tracing::error!("Erreur lors de la vérification du schéma data_latest: {}", e);
         WebError::WTFError(format!("Erreur vérification schéma: {}", e))
     })?;
 
-    if project_schema_exists {
-        // Vérifier s'il y a des données dans le schéma du projet
+    if data_latest_exists {
+        // Vérifier s'il y a des données dans le schéma data_latest
         let has_data = sqlx::query_scalar::<_, i64>(
-            &format!("SELECT COUNT(*) FROM \"{}\".tweet LIMIT 1", project_id)
+            "SELECT COUNT(*) FROM data_latest.tweet LIMIT 1"
         )
         .fetch_one(pg_pool)
         .await
         .unwrap_or(0);
 
         if has_data > 0 {
-            tracing::info!("Utilisation du schéma du projet: {}", project_id);
-            return Ok(project_id.to_string());
+            tracing::info!("Utilisation du schéma data_latest pour l'export");
+            return Ok("data_latest".to_string());
         }
     }
 
-    // 2. Si le schéma du projet n'existe pas ou est vide, chercher dans les schémas d'import
-    tracing::warn!("Schéma du projet {} vide ou inexistant, recherche dans les schémas d'import...", project_id);
+    // 2. Si data_latest n'existe pas ou est vide, aucune donnée disponible
+    tracing::warn!("Schéma data_latest vide ou inexistant pour l'export");
     
-    let import_schemas: Vec<String> = sqlx::query_scalar(
-        "SELECT schema_name FROM information_schema.schemata 
-         WHERE schema_name LIKE 'import_%' 
-         ORDER BY schema_name DESC"
-    )
-    .fetch_all(pg_pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Erreur lors de la recherche des schémas d'import: {}", e);
-        WebError::WTFError(format!("Erreur recherche schémas d'import: {}", e))
-    })?;
-
-    // 3. Chercher le schéma d'import le plus récent avec des données
-    for schema in import_schemas {
-        let tweet_count: i64 = sqlx::query_scalar(
-            &format!("SELECT COUNT(*) FROM {}.tweet LIMIT 1", schema)
-        )
-        .fetch_one(pg_pool)
-        .await
-        .unwrap_or(0);
-
-        if tweet_count > 0 {
-            tracing::info!("Utilisation du schéma d'import trouvé: {} ({} tweets)", schema, tweet_count);
-            return Ok(schema);
-        }
-    }
-
-    // 4. Aucun schéma avec des données trouvé
-    Err(WebError::WTFError(format!(
-        "Aucun schéma avec des données trouvé pour le projet {}. Veuillez d'abord importer des données.", 
-        project_id
-    )))
+    Err(WebError::WTFError(
+        "Aucune donnée disponible dans data_latest. Veuillez d'abord collecter ou importer des données.".to_string()
+    ))
 }
 
 /// Estimer le nombre de tweets et la taille du fichier
@@ -884,42 +854,278 @@ fn build_select_query(columns: &[String], schema_name: &str) -> (String, String)
             "tweet.reply_count" => select_parts.push("t.reply_count".to_string()),
             "tweet.quote_count" => select_parts.push("t.quote_count".to_string()),
             
-            // Colonnes de la table hashtag
-            "hashtag.tweet_id" => {
-                select_parts.push("h.tweet_id".to_string());
-                tables_needed.insert("hashtag");
+            // Colonnes de la table user
+            "user.id" => {
+                select_parts.push("usr.id".to_string());
+                tables_needed.insert("user");
             },
-            "hashtag.hashtag" => {
-                select_parts.push("h.hashtag".to_string());
-                tables_needed.insert("hashtag");
+            "user.screen_name" => {
+                select_parts.push("usr.screen_name".to_string());
+                tables_needed.insert("user");
+            },
+            "user.name" => {
+                select_parts.push("usr.name".to_string());
+                tables_needed.insert("user");
+            },
+            "user.created_at" => {
+                select_parts.push("usr.created_at".to_string());
+                tables_needed.insert("user");
+            },
+            "user.verified" => {
+                select_parts.push("usr.verified".to_string());
+                tables_needed.insert("user");
+            },
+            "user.protected" => {
+                select_parts.push("usr.protected".to_string());
+                tables_needed.insert("user");
             },
             
-            // Colonnes de la table url
-            "url.tweet_id" => {
-                select_parts.push("u.tweet_id".to_string());
-                tables_needed.insert("url");
+            // Colonnes de la table tweet_hashtag
+            "tweet_hashtag.tweet_id" => {
+                select_parts.push("th.tweet_id".to_string());
+                tables_needed.insert("tweet_hashtag");
             },
-            "url.url" => {
-                select_parts.push("u.url".to_string());
-                tables_needed.insert("url");
+            "tweet_hashtag.hashtag" => {
+                select_parts.push("th.hashtag".to_string());
+                tables_needed.insert("tweet_hashtag");
+            },
+            "tweet_hashtag.order" => {
+                select_parts.push("th.\"order\"".to_string());
+                tables_needed.insert("tweet_hashtag");
+            },
+            "tweet_hashtag.start_indice" => {
+                select_parts.push("th.start_indice".to_string());
+                tables_needed.insert("tweet_hashtag");
+            },
+            "tweet_hashtag.end_indice" => {
+                select_parts.push("th.end_indice".to_string());
+                tables_needed.insert("tweet_hashtag");
+            },
+            
+            // Colonnes de la table tweet_url
+            "tweet_url.tweet_id" => {
+                select_parts.push("tu.tweet_id".to_string());
+                tables_needed.insert("tweet_url");
+            },
+            "tweet_url.url" => {
+                select_parts.push("tu.url".to_string());
+                tables_needed.insert("tweet_url");
+            },
+            "tweet_url.order" => {
+                select_parts.push("tu.\"order\"".to_string());
+                tables_needed.insert("tweet_url");
+            },
+            "tweet_url.start_indice" => {
+                select_parts.push("tu.start_indice".to_string());
+                tables_needed.insert("tweet_url");
+            },
+            "tweet_url.end_indice" => {
+                select_parts.push("tu.end_indice".to_string());
+                tables_needed.insert("tweet_url");
             },
             
             // Colonnes de la table retweet
+            "retweet.tweet_id" => {
+                select_parts.push("rt.tweet_id".to_string());
+                tables_needed.insert("retweet");
+            },
             "retweet.retweeted_tweet_id" => {
                 select_parts.push("rt.retweeted_tweet_id".to_string());
                 tables_needed.insert("retweet");
             },
             
             // Colonnes de la table reply
+            "reply.tweet_id" => {
+                select_parts.push("r.tweet_id".to_string());
+                tables_needed.insert("reply");
+            },
             "reply.in_reply_to_tweet_id" => {
                 select_parts.push("r.in_reply_to_tweet_id".to_string());
                 tables_needed.insert("reply");
             },
+            "reply.in_reply_to_user_id" => {
+                select_parts.push("r.in_reply_to_user_id".to_string());
+                tables_needed.insert("reply");
+            },
+            "reply.in_reply_to_screen_name" => {
+                select_parts.push("r.in_reply_to_screen_name".to_string());
+                tables_needed.insert("reply");
+            },
             
             // Colonnes de la table quote
+            "quote.tweet_id" => {
+                select_parts.push("q.tweet_id".to_string());
+                tables_needed.insert("quote");
+            },
             "quote.quoted_tweet_id" => {
                 select_parts.push("q.quoted_tweet_id".to_string());
                 tables_needed.insert("quote");
+            },
+            
+            // Colonnes de la table place
+            "place.id" => {
+                select_parts.push("p.id".to_string());
+                tables_needed.insert("place");
+            },
+            "place.name" => {
+                select_parts.push("p.name".to_string());
+                tables_needed.insert("place");
+            },
+            "place.full_name" => {
+                select_parts.push("p.full_name".to_string());
+                tables_needed.insert("place");
+            },
+            "place.country_code" => {
+                select_parts.push("p.country_code".to_string());
+                tables_needed.insert("place");
+            },
+            "place.country" => {
+                select_parts.push("p.country".to_string());
+                tables_needed.insert("place");
+            },
+            "place.place_type" => {
+                select_parts.push("p.place_type".to_string());
+                tables_needed.insert("place");
+            },
+            "place.url" => {
+                select_parts.push("p.url".to_string());
+                tables_needed.insert("place");
+            },
+            "place.bounding_box" => {
+                select_parts.push("p.bounding_box".to_string());
+                tables_needed.insert("place");
+            },
+            "place.type_bounding_box" => {
+                select_parts.push("p.type_bounding_box".to_string());
+                tables_needed.insert("place");
+            },
+            
+            // Colonnes de la table tweet_media
+            "tweet_media.tweet_id" => {
+                select_parts.push("tm.tweet_id".to_string());
+                tables_needed.insert("tweet_media");
+            },
+            "tweet_media.media_url" => {
+                select_parts.push("tm.media_url".to_string());
+                tables_needed.insert("tweet_media");
+            },
+            "tweet_media.type" => {
+                select_parts.push("tm.type".to_string());
+                tables_needed.insert("tweet_media");
+            },
+            "tweet_media.order" => {
+                select_parts.push("tm.\"order\"".to_string());
+                tables_needed.insert("tweet_media");
+            },
+            "tweet_media.source_tweet_id" => {
+                select_parts.push("tm.source_tweet_id".to_string());
+                tables_needed.insert("tweet_media");
+            },
+            
+            // Colonnes de la table corpus
+            "corpus.tweet_id" => {
+                select_parts.push("c.tweet_id".to_string());
+                tables_needed.insert("corpus");
+            },
+            "corpus.corpus" => {
+                select_parts.push("c.corpus".to_string());
+                tables_needed.insert("corpus");
+            },
+            
+            // Colonnes de la table tweet_cashtag
+            "tweet_cashtag.tweet_id" => {
+                select_parts.push("tca.tweet_id".to_string());
+                tables_needed.insert("tweet_cashtag");
+            },
+            "tweet_cashtag.cashtag" => {
+                select_parts.push("tca.cashtag".to_string());
+                tables_needed.insert("tweet_cashtag");
+            },
+            "tweet_cashtag.order" => {
+                select_parts.push("tca.\"order\"".to_string());
+                tables_needed.insert("tweet_cashtag");
+            },
+            "tweet_cashtag.start_indice" => {
+                select_parts.push("tca.start_indice".to_string());
+                tables_needed.insert("tweet_cashtag");
+            },
+            "tweet_cashtag.end_indice" => {
+                select_parts.push("tca.end_indice".to_string());
+                tables_needed.insert("tweet_cashtag");
+            },
+            
+            // Colonnes de la table tweet_emoji
+            "tweet_emoji.tweet_id" => {
+                select_parts.push("te.tweet_id".to_string());
+                tables_needed.insert("tweet_emoji");
+            },
+            "tweet_emoji.emoji" => {
+                select_parts.push("te.emoji".to_string());
+                tables_needed.insert("tweet_emoji");
+            },
+            "tweet_emoji.order" => {
+                select_parts.push("te.\"order\"".to_string());
+                tables_needed.insert("tweet_emoji");
+            },
+            "tweet_emoji.start_indice" => {
+                select_parts.push("te.start_indice".to_string());
+                tables_needed.insert("tweet_emoji");
+            },
+            "tweet_emoji.end_indice" => {
+                select_parts.push("te.end_indice".to_string());
+                tables_needed.insert("tweet_emoji");
+            },
+            
+            // Colonnes de la table tweet_user_mention
+            "tweet_user_mention.tweet_id" => {
+                select_parts.push("tum.tweet_id".to_string());
+                tables_needed.insert("tweet_user_mention");
+            },
+            "tweet_user_mention.user_id" => {
+                select_parts.push("tum.user_id".to_string());
+                tables_needed.insert("tweet_user_mention");
+            },
+            "tweet_user_mention.order" => {
+                select_parts.push("tum.\"order\"".to_string());
+                tables_needed.insert("tweet_user_mention");
+            },
+            "tweet_user_mention.start_indice" => {
+                select_parts.push("tum.start_indice".to_string());
+                tables_needed.insert("tweet_user_mention");
+            },
+            "tweet_user_mention.end_indice" => {
+                select_parts.push("tum.end_indice".to_string());
+                tables_needed.insert("tweet_user_mention");
+            },
+            
+            // Colonnes de la table tweet_keyword_user
+            "tweet_keyword_user.tweet_id" => {
+                select_parts.push("tku.tweet_id".to_string());
+                tables_needed.insert("tweet_keyword_user");
+            },
+            "tweet_keyword_user.user_id" => {
+                select_parts.push("tku.user_id".to_string());
+                tables_needed.insert("tweet_keyword_user");
+            },
+            
+            // Colonnes de la table tweet_keyword_hashtag
+            "tweet_keyword_hashtag.tweet_id" => {
+                select_parts.push("tkh.tweet_id".to_string());
+                tables_needed.insert("tweet_keyword_hashtag");
+            },
+            "tweet_keyword_hashtag.hashtag" => {
+                select_parts.push("tkh.hashtag".to_string());
+                tables_needed.insert("tweet_keyword_hashtag");
+            },
+            
+            // Colonnes de la table withheld_in_country
+            "withheld_in_country.user_id" => {
+                select_parts.push("wic.user_id".to_string());
+                tables_needed.insert("withheld_in_country");
+            },
+            "withheld_in_country.country" => {
+                select_parts.push("wic.country".to_string());
+                tables_needed.insert("withheld_in_country");
             },
             
             _ => {
@@ -932,20 +1138,50 @@ fn build_select_query(columns: &[String], schema_name: &str) -> (String, String)
     // Construire la clause FROM avec les JOINs nécessaires
     let mut from_clause = format!("\"{}\".tweet t", schema_name);
     
-    if tables_needed.contains("hashtag") {
-        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_hashtag h ON t.id = h.tweet_id", schema_name));
+    if tables_needed.contains("user") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".user usr ON t.user_id = usr.id", schema_name));
     }
-    if tables_needed.contains("url") {
-        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_url u ON t.id = u.tweet_id", schema_name));
+    if tables_needed.contains("tweet_hashtag") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_hashtag th ON t.id = th.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_url") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_url tu ON t.id = tu.tweet_id", schema_name));
     }
     if tables_needed.contains("retweet") {
-        from_clause.push_str(&format!(" LEFT JOIN \"{}\".retweet rt ON t.id = rt.retweeted_tweet_id", schema_name));
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".retweet rt ON t.id = rt.tweet_id", schema_name));
     }
     if tables_needed.contains("reply") {
         from_clause.push_str(&format!(" LEFT JOIN \"{}\".reply r ON t.id = r.tweet_id", schema_name));
     }
     if tables_needed.contains("quote") {
         from_clause.push_str(&format!(" LEFT JOIN \"{}\".quote q ON t.id = q.tweet_id", schema_name));
+    }
+    if tables_needed.contains("place") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_place tp ON t.id = tp.tweet_id LEFT JOIN \"{}\".place p ON tp.place_id = p.id", schema_name, schema_name));
+    }
+    if tables_needed.contains("tweet_media") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_media tm ON t.id = tm.tweet_id", schema_name));
+    }
+    if tables_needed.contains("corpus") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".corpus c ON t.id = c.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_cashtag") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_cashtag tca ON t.id = tca.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_emoji") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_emoji te ON t.id = te.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_user_mention") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_user_mention tum ON t.id = tum.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_keyword_user") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_keyword_user tku ON t.id = tku.tweet_id", schema_name));
+    }
+    if tables_needed.contains("tweet_keyword_hashtag") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".tweet_keyword_hashtag tkh ON t.id = tkh.tweet_id", schema_name));
+    }
+    if tables_needed.contains("withheld_in_country") {
+        from_clause.push_str(&format!(" LEFT JOIN \"{}\".withheld_in_country wic ON t.user_id = wic.user_id", schema_name));
     }
     
     let select_clause = if select_parts.is_empty() {

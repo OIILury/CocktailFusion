@@ -201,8 +201,8 @@ async fn import_csv_internal(
         return Err("Aucun fichier CSV fourni".into());
     }
 
-    // Utiliser le schéma fourni ou en créer un nouveau
-    let schema_name = schema_name.unwrap_or_else(|| format!("import_{}", Local::now().format("%Y%m%d")));
+    // Utiliser le schéma data_latest pour simplifier la gestion
+    let schema_name = schema_name.unwrap_or_else(|| "data_latest".to_string());
     info!("Utilisation du schéma: {}", schema_name);
     
     // Créer la connexion à la base de données
@@ -283,73 +283,11 @@ async fn import_csv_internal(
 }
 
 async fn create_tables(pool: &PgPool, schema_name: &str) -> Result<(), Box<dyn Error>> {
-    // Table tweet
-    sqlx::query(&format!(
-        r#"
-        CREATE TABLE IF NOT EXISTS {}.tweet (
-            id TEXT PRIMARY KEY,
-            created_at TEXT NOT NULL,
-            published_time BIGINT NOT NULL,
-            user_id TEXT NOT NULL,
-            user_name TEXT NOT NULL,
-            user_screen_name TEXT NOT NULL,
-            text TEXT NOT NULL,
-            source TEXT,
-            language TEXT NOT NULL,
-            coordinates_longitude TEXT,
-            coordinates_latitude TEXT,
-            possibly_sensitive BOOLEAN,
-            retweet_count BIGINT NOT NULL DEFAULT 0,
-            reply_count BIGINT NOT NULL DEFAULT 0,
-            quote_count BIGINT NOT NULL DEFAULT 0
-        )
-        "#,
-        schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    // Table tweet_hashtag
-    sqlx::query(&format!(
-        "CREATE TABLE IF NOT EXISTS {}.tweet_hashtag (tweet_id TEXT REFERENCES {}.tweet(id), hashtag TEXT)",
-        schema_name, schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    // Table tweet_url
-    sqlx::query(&format!(
-        "CREATE TABLE IF NOT EXISTS {}.tweet_url (tweet_id TEXT REFERENCES {}.tweet(id), url TEXT)",
-        schema_name, schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    // Table retweet
-    sqlx::query(&format!(
-        "CREATE TABLE IF NOT EXISTS {}.retweet (retweeted_tweet_id TEXT REFERENCES {}.tweet(id))",
-        schema_name, schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    // Table reply
-    sqlx::query(&format!(
-        "CREATE TABLE IF NOT EXISTS {}.reply (in_reply_to_tweet_id TEXT REFERENCES {}.tweet(id))",
-        schema_name, schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    // Table quote
-    sqlx::query(&format!(
-        "CREATE TABLE IF NOT EXISTS {}.quote (quoted_tweet_id TEXT REFERENCES {}.tweet(id))",
-        schema_name, schema_name
-    ))
-    .execute(pool)
-    .await?;
-
-    Ok(())
+    // Utiliser la même fonction de création de tables que pour la collecte
+    // pour assurer la cohérence de la structure
+    crate::routes::collect::database::create_collection_tables(pool, schema_name)
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn Error>)
 }
 
 // Modification de la fonction process_batch pour utiliser la nouvelle signature

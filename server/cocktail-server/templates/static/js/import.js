@@ -12,12 +12,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const multipleFilesCard = document.getElementById('multipleFilesCard');
     const dropZoneText = document.getElementById('dropZoneText');
     const importNameInput = document.getElementById('importName');
+
     let currentFiles = [];
     let currentSchemaName = null;
     let isImporting = false;
     let importTimeout = null;
     let isAnalyzing = false;
     let currentAnalysis = null;
+
+
 
     // Gestion du mode d'importation
     singleFileCard.addEventListener('click', () => {
@@ -316,7 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         formData.append('mode', singleFileMode.checked ? 'single' : 'multiple');
-        formData.append('schema_name', currentSchemaName);
+        
+        // Utiliser data_latest comme schéma de destination
+        // Le schéma est maintenant fixe pour simplifier
+        
         formData.append('source', source);
         formData.append('name', importName);
         formData.append('analysis', JSON.stringify(currentAnalysis));

@@ -1,5 +1,5 @@
 use std::{fmt, fs, net::SocketAddr, path::PathBuf, str::FromStr};
-use crate::routes::collect::{start_collection, delete_collection, update_collection};
+use crate::routes::collect::{start_collection, delete_collection, update_collection, list_available_schemas};
 
 use axum::{
   async_trait,
@@ -42,7 +42,7 @@ use crate::{
     home, index,
     projects::{
       basket::*, collect::*, daterange::*, delete::*, download::*, duplicate::*, hashtags::*, nouveau::*,
-      projects, rename::*, request::*, update::*, import::*, csv_export::*,
+      projects, rename::*, request::*, update::*, import::*, csv_export::*, clear::*,
     },
     study::{analysis::*, authors::*, communities::*, results},
     csv_import,
@@ -254,6 +254,7 @@ pub async fn run(
     .typed_post(rename_project.layer(turbo_stream))
     .typed_post(duplicate_project)
     .typed_get(download_project)
+    .typed_get(clear_data_latest)
     .typed_get(daterange)
     .typed_get(collect)
     .typed_get(hashtags)
@@ -296,6 +297,7 @@ pub async fn run(
     .typed_post(start_collection)
     .typed_post(delete_collection)
     .typed_post(update_collection)
+    .typed_get(list_available_schemas)
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
     .route("/projets/:project_id/export", get(csv_export))

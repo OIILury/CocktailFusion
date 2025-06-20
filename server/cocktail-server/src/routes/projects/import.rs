@@ -3,7 +3,7 @@ use crate::{
     models::templates::{HtmlTemplate, ImportTemplate},
     routes::paths::{
         ProjectImport, ProjectCollect, ProjectCsvExport, ProjectDateRange, ProjectHashtags, ProjectRequest,
-        PopupDeleteProject, PopupRenameProject, DownloadProject, PopupDuplicateProject,
+        PopupDeleteProject, PopupRenameProject, ClearDataLatest, PopupDuplicateProject,
         PopupAnalysisPreview, ProjectAnalysis, ProjectResults, ProjectTweetsGraph, ProjectAuthors,
         ProjectResultHashtags, Communities, 
     },
@@ -42,7 +42,7 @@ pub async fn import(
         request_path: ProjectRequest { project_id },
         delete_popup_path: PopupDeleteProject { project_id },
         rename_popup_path: PopupRenameProject { project_id },
-        download_path: DownloadProject { project_id },
+        clear_data_path: ClearDataLatest { project_id },
         duplicate_popup_path: PopupDuplicateProject { project_id },
         analysis_preview_popup_path: PopupAnalysisPreview { project_id },
         analysis_path: ProjectAnalysis { project_id },

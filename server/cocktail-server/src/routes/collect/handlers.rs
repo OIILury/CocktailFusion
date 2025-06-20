@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Json, State},
+    extract::{Json, State, Query},
     response::IntoResponse,
     http::HeaderMap,
 };
 use chrono::Local;
 use futures::future;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     error::WebError,
@@ -13,9 +14,9 @@ use crate::{
         ProjectCollect, StartCollection, DeleteCollection, UpdateCollection,
         ProjectDateRange, ProjectHashtags, ProjectRequest, ProjectImport,
         ProjectCsvExport, PopupDeleteProject, PopupRenameProject, PopupDuplicateProject,
-        DownloadProject, PopupAnalysisPreview, ProjectAnalysis,
+        ClearDataLatest, PopupAnalysisPreview, ProjectAnalysis,
         ProjectResults, ProjectTweetsGraph, ProjectAuthors,
-        ProjectResultHashtags, Communities
+        ProjectResultHashtags, Communities, ListSchemas
     },
     routes::automation::run_automation_pipeline,
     get_logout_url,
@@ -50,7 +51,7 @@ pub async fn collect(
         delete_popup_path: PopupDeleteProject { project_id: paths.project_id },
         rename_popup_path: PopupRenameProject { project_id: paths.project_id },
         duplicate_popup_path: PopupDuplicateProject { project_id: paths.project_id },
-        download_path: DownloadProject { project_id: paths.project_id },
+        clear_data_path: ClearDataLatest { project_id: paths.project_id },
         analysis_preview_popup_path: PopupAnalysisPreview { project_id: paths.project_id },
         analysis_path: ProjectAnalysis { project_id: paths.project_id },
         is_analyzed: project.is_analyzed == 1,
@@ -104,9 +105,9 @@ pub async fn start_collection(
         }
     }
     
-    // Use a fixed schema name that gets updated with each collection
-    let schema_name = "collect_latest".to_string();
-    tracing::info!("Using fixed collection schema: {} (preserving data between collections)", schema_name);
+    // FORCER l'utilisation de data_latest pour toutes les collectes
+    let schema_name = "data_latest".to_string();
+    tracing::info!("Forcing collection to use data_latest schema (ignoring any user selection)");
     
     // Get database connection
     let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
@@ -192,7 +193,7 @@ pub async fn delete_collection(
         .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
     // Drop the collection schema
-    let schema_name = "collect_latest";
+    let schema_name = "data_latest";
     sqlx::query(&format!("DROP SCHEMA IF EXISTS {} CASCADE", schema_name))
         .execute(&pool)
         .await
@@ -216,7 +217,7 @@ pub async fn update_collection(
         .await
         .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
 
-    let schema_name = "collect_latest".to_string();
+    let schema_name = "data_latest".to_string();
 
     tracing::info!("Starting automation pipeline for schema {} and project {}", schema_name, path.project_id);
     
@@ -362,4 +363,103 @@ async fn collect_twitter_optimized(
         tracing::warn!("Twitter Bearer Token not set, skipping collection for keyword: {}", keyword);
         0
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AvailableSchema {
+    pub name: String,
+    pub tweet_count: i64,
+    pub last_updated: Option<String>,
+    pub schema_type: String, // "collection", "import", "project"
+}
+
+#[derive(Debug, Serialize)]
+pub struct SchemasListResponse {
+    pub schemas: Vec<AvailableSchema>,
+}
+
+/// Liste tous les schémas disponibles avec des données
+pub async fn list_available_schemas(
+    _path: ListSchemas,
+    State(_state): State<AppState>,
+    _authuser: AuthenticatedUser,
+) -> Result<impl IntoResponse, WebError> {
+    // Get database connection
+    let pool = sqlx::PgPool::connect(&std::env::var("PG_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://cocktailuser:cocktailuser@localhost:5432/cocktail_pg".to_string()))
+        .await
+        .map_err(|e| WebError::WTFError(format!("DB connection error: {}", e)))?;
+
+    let mut schemas = Vec::new();
+
+    // Récupérer tous les schémas qui ne sont pas des schémas système
+    let schema_names: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT schema_name 
+        FROM information_schema.schemata 
+        WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
+        AND schema_name NOT LIKE 'pg_%'
+        ORDER BY schema_name DESC
+        "#
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| WebError::WTFError(format!("Failed to list schemas: {}", e)))?;
+
+    for schema_name in schema_names {
+        // Vérifier si le schéma a une table tweet avec des données
+        let tweet_count: i64 = sqlx::query_scalar(&format!(
+            r#"
+            SELECT COALESCE(
+                (SELECT COUNT(*) FROM "{}".tweet LIMIT 1000), 
+                0
+            ) as count
+            WHERE EXISTS (
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_schema = '{}' AND table_name = 'tweet'
+            )
+            "#,
+            schema_name, schema_name
+        ))
+        .fetch_one(&pool)
+        .await
+        .unwrap_or(0);
+
+        if tweet_count > 0 {
+            // Déterminer le type de schéma
+            let schema_type = if schema_name.starts_with("import_") {
+                "import"
+            } else if schema_name == "data_latest" {
+                "collection"
+            } else if schema_name.len() == 36 && schema_name.contains('-') {
+                "project" // Format UUID
+            } else {
+                "other"
+            };
+
+            // Essayer de récupérer la date de dernière modification (approximative)
+            let last_updated = sqlx::query_scalar::<_, Option<chrono::NaiveDateTime>>(&format!(
+                r#"
+                SELECT MAX(to_timestamp(published_time / 1000)) as last_tweet
+                FROM "{}".tweet 
+                LIMIT 1
+                "#,
+                schema_name
+            ))
+            .fetch_one(&pool)
+            .await
+            .ok()
+            .flatten()
+            .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string());
+
+            schemas.push(AvailableSchema {
+                name: schema_name,
+                tweet_count,
+                last_updated,
+                schema_type: schema_type.to_string(),
+            });
+        }
+    }
+
+    Ok(Json(SchemasListResponse { schemas }))
 } 

@@ -9,6 +9,7 @@ pub struct CollectionRequest {
     pub limit: Option<usize>,
     pub start_date: Option<String>, // Format ISO 8601
     pub end_date: Option<String>,   // Format ISO 8601
+    pub target_schema: Option<String>, // Schéma de destination optionnel
 }
 
 #[derive(Debug, Serialize, Deserialize)]

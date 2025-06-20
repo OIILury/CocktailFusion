@@ -22,6 +22,18 @@ pub mod request;
 pub mod update;
 pub mod import;
 pub mod csv_export;
+pub mod clear;
+
+pub use collect::*;
+pub use request::*;
+pub use hashtags::*;
+pub use daterange::*;
+pub use duplicate::*;
+pub use delete::*;
+pub use clear::*;
+pub use download::*;
+pub use import::*;
+pub use csv_export::*;
 
 #[tracing::instrument]
 pub async fn projects(

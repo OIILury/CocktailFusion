@@ -7,9 +7,9 @@ use crate::routes::automation::{
     error::{SchemaCopyError, AutomationError},
 };
 
-/// Exécute l'étape de copie des données du schéma d'import vers le schéma du projet
+/// Exécute l'étape de copie des données du schéma data_latest vers le schéma du projet
 pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), AutomationError> {
-    debug!("Début de la copie des données vers le schéma du projet");
+    debug!("Début de la copie des données depuis data_latest vers le schéma du projet");
     
     // Créer la connexion à la base de données
     let pool = PgPool::connect(&context.database_url).await?;
@@ -35,8 +35,9 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
     .execute(&pool)
     .await?;
     
-    // Copier les tables du schéma d'import vers le schéma du projet
-    debug!("Copie des tables du schéma {} vers le schéma {}", context.schema_name, project_id);
+    // Copier les tables du schéma data_latest vers le schéma du projet
+    let source_schema = "data_latest";
+    debug!("Copie des tables du schéma {} vers le schéma {}", source_schema, project_id);
     let tables = vec![
         "corpus", "place", "quote", "reply", "retweet", "tweet", 
         "tweet_cashtag", "tweet_emoji", "tweet_hashtag", "tweet_keyword_hashtag",
@@ -141,7 +142,7 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
                         WITH NO DATA
                         "#,
                         project_id, table,
-                        context.schema_name, table
+                        source_schema, table
                     ))
                     .execute(&pool)
                     .await?;
@@ -176,7 +177,7 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
                     ON CONFLICT DO NOTHING
                     "#,
                     project_id, table,
-                    context.schema_name, table
+                    source_schema, table
                 ))
                 .execute(&pool)
                 .await?;
@@ -190,7 +191,7 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
                     ON CONFLICT DO NOTHING
                     "#,
                     project_id, table,
-                    context.schema_name, table
+                    source_schema, table
                 ))
                 .execute(&pool)
                 .await?;
@@ -204,7 +205,7 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
                     ON CONFLICT DO NOTHING
                     "#,
                     project_id, table,
-                    context.schema_name, table
+                    source_schema, table
                 ))
                 .execute(&pool)
                 .await?;
@@ -218,7 +219,7 @@ pub async fn run_schema_copy(context: &AutomationContext) -> Result<(), Automati
                     ON CONFLICT DO NOTHING
                     "#,
                     project_id, table,
-                    context.schema_name, table
+                    source_schema, table
                 ))
                 .execute(&pool)
                 .await?;

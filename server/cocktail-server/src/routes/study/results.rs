@@ -66,7 +66,7 @@ async fn get_tweets_from_database(
   let mut tweets = Vec::new();
   
   // Use the fixed collection schema name
-  let schema_name = "collect_latest";
+  let schema_name = "data_latest";
   
   // Check if the schema exists
   let schema_exists = sqlx::query_scalar::<_, bool>(
@@ -307,7 +307,7 @@ pub async fn get_results(
     communities_path: paths::Communities { project_id },
     delete_popup_path: paths::PopupDeleteProject { project_id },
     rename_popup_path: paths::PopupRenameProject { project_id },
-    download_path: paths::DownloadProject { project_id },
+    clear_data_path: paths::ClearDataLatest { project_id },
     duplicate_popup_path: paths::PopupDuplicateProject { project_id },
     logout_url,
     include_count,

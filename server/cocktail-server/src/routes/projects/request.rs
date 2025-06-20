@@ -85,7 +85,7 @@ pub async fn request(
       authors_path: paths::ProjectAuthors { project_id },
       result_hashtags_path: paths::ProjectResultHashtags { project_id },
       communities_path: paths::Communities { project_id },
-      download_path: paths::DownloadProject { project_id },
+      clear_data_path: paths::ClearDataLatest { project_id },
       logout_url,
       include_count,
       exclude_count,

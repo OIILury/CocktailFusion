@@ -235,7 +235,7 @@ pub async fn get_results(
     delete_popup_path: paths::PopupDeleteProject { project_id },
     rename_popup_path: paths::PopupRenameProject { project_id },
     duplicate_popup_path: paths::PopupDuplicateProject { project_id },
-    download_path: paths::DownloadProject { project_id },
+    clear_data_path: paths::ClearDataLatest { project_id },
     authors_path: paths::ProjectAuthors { project_id },
     aside_hashtag_path: ProjectAsideHashtag {
       project_id,

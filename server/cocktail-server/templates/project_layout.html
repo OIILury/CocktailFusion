@@ -69,24 +69,18 @@
       </div>
 
       <div class="header__bot__right">
-        {% if tweets_count < 5000 %}<a href="{{ download_path }}" class="button--border">
-          <span class="icon-download"></span>
-          <span>Exporter l'étude</span>
-          </a>
-          {% else %}
-          <a href="#" class="button--border disabled" title="Trop de résultats pour l'export, maximum 5000 tweets">
-            <span class="icon-download"></span>
-            <span>Exporter l'étude</span>
-          </a>
-          {% endif %}
-          <a href="{{ duplicate_popup_path }}" class="button--border">
-            <span class="icon-dupliquer"></span>
-            <span>Dupliquer l'étude</span>
-          </a>
-          <a href="{{ delete_popup_path }}" class="button--border">
-            <span class="icon-poubelle-x"></span>
-            <span>Supprimer l'étude</span>
-          </a>
+        <a href="{{ clear_data_path }}" class="button--border">
+          <span class="icon-trash"></span>
+          <span>Supprimer les données</span>
+        </a>
+        <a href="{{ duplicate_popup_path }}" class="button--border">
+          <span class="icon-dupliquer"></span>
+          <span>Dupliquer l'étude</span>
+        </a>
+        <a href="{{ delete_popup_path }}" class="button--border">
+          <span class="icon-poubelle-x"></span>
+          <span>Supprimer l'étude</span>
+        </a>
       </div>
     </div>
   </header>

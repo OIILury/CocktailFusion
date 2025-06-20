@@ -44,7 +44,7 @@ pub async fn csv_export(
         request_path: paths::ProjectRequest { project_id },
         delete_popup_path: paths::PopupDeleteProject { project_id },
         rename_popup_path: paths::PopupRenameProject { project_id },
-        download_path: paths::DownloadProject { project_id },
+        clear_data_path: paths::ClearDataLatest { project_id },
         duplicate_popup_path: paths::PopupDuplicateProject { project_id },
         analysis_preview_popup_path: paths::PopupAnalysisPreview { project_id },
         analysis_path: paths::ProjectAnalysis { project_id },

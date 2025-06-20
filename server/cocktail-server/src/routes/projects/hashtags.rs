@@ -53,7 +53,7 @@ pub async fn hashtags(
     delete_popup_path: paths::PopupDeleteProject { project_id },
     rename_popup_path: paths::PopupRenameProject { project_id },
     duplicate_popup_path: paths::PopupDuplicateProject { project_id },
-    download_path: paths::DownloadProject { project_id },
+    clear_data_path: paths::ClearDataLatest { project_id },
     include_basket_path: paths::ProjectBasketInclude { project_id },
     exclude_basket_path: paths::ProjectBasketExclude { project_id },
     daterange_path: paths::ProjectDateRange { project_id },

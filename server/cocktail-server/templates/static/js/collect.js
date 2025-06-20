@@ -10,6 +10,7 @@ function initCollect() {
     const keywordsList = document.getElementById('keywordsList');
     const startCollectBtn = document.getElementById('startCollect');
     const collectNameInput = document.getElementById('collectName');
+
     
     // Vérification que les éléments sont bien trouvés
     console.log('Éléments trouvés:', {
@@ -38,6 +39,8 @@ function initCollect() {
     
     // Array to store keywords
     let keywords = [];
+    
+
     
     // Add delete collection button handler
     const deleteCollectBtn = document.getElementById('deleteCollect');
@@ -238,7 +241,8 @@ function initCollect() {
                 name: collectName,
                 keywords: keywords,
                 networks: networks,
-                limit: parseInt(document.getElementById('tweetLimit').value) || 10
+                limit: parseInt(document.getElementById('tweetLimit').value) || 10,
+                target_schema: null
             };
             
             // Ajouter les dates seulement si elles sont spécifiées

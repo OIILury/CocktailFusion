@@ -20,6 +20,7 @@ pub mod study;
 pub mod csv_import;
 pub mod collect;
 pub mod automation;
+pub mod export_api;
 
 #[derive(Debug, Serialize)]
 pub struct Context {

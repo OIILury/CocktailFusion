@@ -528,6 +528,7 @@ dependencies = [
  "glob",
  "handlebars",
  "hyper",
+ "lazy_static",
  "mime_guess",
  "num-format",
  "ory-kratos-client",

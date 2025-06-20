@@ -2,6 +2,10 @@
 
 {% block title %}Export CSV{% endblock %}
 
+{% block head %}
+  <link rel="stylesheet" href="/static/css/export.css">
+{% endblock %}
+
 {% block content %}
 {% let active_page = "export" %}
   <main class="main-site" id="main-site">
@@ -67,6 +71,11 @@
         </div>
 
         <form id="export-form" method="post" action="/export/csv">
+          <!-- Champs cachés pour les filtres -->
+          <input type="hidden" name="date_filter_type" id="hidden-date-filter-type">
+          <input type="hidden" name="date_ranges" id="hidden-date-ranges">
+          <input type="hidden" name="popularity_filters" id="hidden-popularity-filters">
+          
           <div class="database-structure">
             <div class="table-section" data-table="tweet">
               <div class="table-header">
@@ -353,45 +362,201 @@
             </div>
           </div>
 
-          <div class="export-actions">
-            <div class="format-options">
-              <h4>Options d'export</h4>
-              <div class="option-group">
-                <label class="option-item">
-                  <input type="radio" name="format" value="csv" checked>
-                  <span>CSV (Comma Separated Values)</span>
-                </label>
-                <label class="option-item">
-                  <input type="radio" name="format" value="tsv">
-                  <span>TSV (Tab Separated Values)</span>
-                </label>
-                <label class="option-item">
-                  <input type="radio" name="format" value="excel">
-                  <span>Excel (.xlsx)</span>
-                </label>
-              </div>
-              
-              <div class="csv-options">
-                <label class="checkbox-option">
-                  <input type="checkbox" name="include_headers" checked>
-                  <span>Inclure les en-têtes de colonnes</span>
-                </label>
-                <label class="checkbox-option">
-                  <input type="checkbox" name="utf8_bom">
-                  <span>Ajouter BOM UTF-8 (pour Excel)</span>
-                </label>
+          <!-- Section des filtres déplacée ici -->
+          <div class="table-section" data-table="filters">
+            <div class="table-header">
+              <h3>
+                <span class="table-icon">🔍</span>
+                Filtres d'export
+                <span class="table-count">(Optionnel)</span>
+              </h3>
+              <div class="table-controls">
+                <button type="button" class="btn btn-secondary btn-sm" id="refresh-estimate">
+                  <span class="icon-refresh"></span>
+                  Recalculer l'estimation
+                </button>
               </div>
             </div>
+            
+            <div class="filters-content">
+              <!-- Filtres de date -->
+              <div class="filter-group">
+                <h4>
+                  <span class="icon-calendar"></span>
+                  Filtres de date
+                </h4>
+                <div class="filter-options">
+                  <div class="option-item">
+                    <input type="radio" id="date_all" name="date_filter_type" value="all" checked>
+                    <label for="date_all">Toutes les dates</label>
+                  </div>
+                  
+                  <div class="option-item">
+                    <input type="radio" id="date_single" name="date_filter_type" value="single_range">
+                    <label for="date_single">Plage de dates unique</label>
+                  </div>
+                  
+                  <div class="date-inputs" id="single-date-inputs" style="display: none;">
+                    <div class="date-input-group">
+                      <label>Date de début :</label>
+                      <input type="date" name="start_date" class="date-picker">
+                    </div>
+                    <div class="date-input-group">
+                      <label>Date de fin :</label>
+                      <input type="date" name="end_date" class="date-picker">
+                    </div>
+                  </div>
+                  
+                  <div class="option-item">
+                    <input type="radio" id="date_multiple" name="date_filter_type" value="multiple_ranges">
+                    <label for="date_multiple">Plages multiples</label>
+                  </div>
+                  
+                  <div class="multiple-ranges" id="multiple-date-inputs" style="display: none;">
+                    <div class="date-ranges-container" id="date-ranges-container">
+                      <!-- Les plages seront ajoutées dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="add-date-range">
+                      <span class="icon-plus"></span>
+                      Ajouter une plage
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-            <div class="action-buttons">
-              <button type="button" class="btn btn-secondary" id="preview-export">
-                <span class="icon-eye"></span>
-                Aperçu
-              </button>
-              <button type="submit" class="btn btn-primary" id="export-btn">
-                <span class="icon-download"></span>
-                Exporter les données
-              </button>
+              <!-- Filtres de popularité -->
+              <div class="filter-group">
+                <h4>
+                  <span class="icon-trending-up"></span>
+                  Filtres de popularité
+                </h4>
+                <div class="popularity-filters">
+                  <div class="popularity-filter">
+                    <label>Nombre de likes :</label>
+                    <div class="range-input">
+                      <input type="number" name="min_likes" min="0" placeholder="Min">
+                      <span>à</span>
+                      <input type="number" name="max_likes" min="0" placeholder="Max">
+                    </div>
+                  </div>
+                  
+                  <div class="popularity-filter">
+                    <label>Nombre de retweets :</label>
+                    <div class="range-input">
+                      <input type="number" name="min_retweets" min="0" placeholder="Min">
+                      <span>à</span>
+                      <input type="number" name="max_retweets" min="0" placeholder="Max">
+                    </div>
+                  </div>
+                  
+                  <div class="popularity-filter">
+                    <label>Nombre de citations :</label>
+                    <div class="range-input">
+                      <input type="number" name="min_quotes" min="0" placeholder="Min">
+                      <span>à</span>
+                      <input type="number" name="max_quotes" min="0" placeholder="Max">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Estimation et informations -->
+              <div class="export-info">
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-icon">📊</span>
+                    <div class="info-content">
+                      <span class="info-label">Nombre de tweets estimé</span>
+                      <span class="info-value" id="estimated-tweets">Calcul en cours...</span>
+                    </div>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-icon">💾</span>
+                    <div class="info-content">
+                      <span class="info-label">Taille estimée du fichier</span>
+                      <span class="info-value" id="estimated-size">Calcul en cours...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section des options d'export avec style harmonisé -->
+          <div class="table-section" data-table="options">
+            <div class="table-header">
+              <h3>
+                <span class="table-icon">⚙️</span>
+                Options d'export
+                <span class="table-count">(Format et paramètres)</span>
+              </h3>
+            </div>
+            
+            <div class="export-options-content">
+              <div class="format-group">
+                <h4>
+                  <span class="icon-file"></span>
+                  Format d'export
+                </h4>
+                <div class="option-group">
+                  <div class="option-item">
+                    <input type="radio" id="format_csv" name="format" value="csv" checked>
+                    <label for="format_csv">CSV (Comma Separated Values)</label>
+                  </div>
+                  <div class="option-item">
+                    <input type="radio" id="format_tsv" name="format" value="tsv">
+                    <label for="format_tsv">TSV (Tab Separated Values)</label>
+                  </div>
+                  <div class="option-item">
+                    <input type="radio" id="format_excel" name="format" value="excel">
+                    <label for="format_excel">Excel (.xlsx)</label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="additional-options">
+                <h4>
+                  <span class="icon-settings"></span>
+                  Options avancées
+                </h4>
+                
+                <!-- Nom du fichier d'export -->
+                <div class="filename-group">
+                  <label for="export_filename">Nom du fichier d'export :</label>
+                  <div class="filename-input-container">
+                    <input type="text" id="export_filename" name="export_filename" 
+                           placeholder="Mon_export" 
+                           value="Export_{{ title }}">
+                    <span class="filename-extension" id="filename-extension">.csv</span>
+                  </div>
+                </div>
+                
+                <div class="checkbox-options">
+                  <div class="checkbox-option">
+                    <input type="checkbox" id="include_headers" name="include_headers" checked>
+                    <label for="include_headers">Inclure les en-têtes de colonnes</label>
+                  </div>
+                  <div class="checkbox-option">
+                    <input type="checkbox" id="utf8_bom" name="utf8_bom">
+                    <label for="utf8_bom">Ajouter BOM UTF-8 (pour Excel)</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="action-buttons">
+                <button type="button" class="btn btn-primary" id="export-btn">
+                  <span class="icon-download"></span>
+                  Exporter les données
+                </button>
+              </div>
+              
+              <!-- Messages d'état -->
+              <div class="export-messages" id="export-messages" style="display: none;">
+                <div class="message-container">
+                  <div class="message-icon"></div>
+                  <div class="message-text"></div>
+                </div>
+              </div>
             </div>
           </div>
         </form>
@@ -401,18 +566,579 @@
 
   {% include "footer.html" %}
 
+  <!-- Modales -->
+  <!-- Modale de confirmation d'export -->
+  <div class="modal" id="export-confirmation-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Confirmation d'export</h3>
+        <button type="button" class="modal-close" data-modal="export-confirmation-modal">
+          <span class="icon-x"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="confirmation-info">
+          <div class="info-row">
+            <span class="label">Nombre de tweets :</span>
+            <span class="value" id="confirm-tweet-count">-</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Taille estimée :</span>
+            <span class="value" id="confirm-file-size">-</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Colonnes sélectionnées :</span>
+            <span class="value" id="confirm-column-count">-</span>
+          </div>
+        </div>
+        
+        <div class="warning-message" id="large-export-warning" style="display: none;">
+          <span class="icon-alert-triangle"></span>
+          <div>
+            <strong>Export volumineux détecté</strong>
+            <p>Cet export contient plus de 100 000 tweets. Le téléchargement peut prendre plusieurs minutes.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal="export-confirmation-modal">
+          Annuler
+        </button>
+        <button type="button" class="btn btn-primary" id="confirm-export-btn">
+          <span class="icon-download"></span>
+          Confirmer l'export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de progression -->
+  <div class="modal" id="export-progress-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Export en cours</h3>
+      </div>
+      <div class="modal-body">
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+          </div>
+          <div class="progress-text">
+            <span id="progress-percentage">0%</span>
+            <span id="progress-status">Préparation de l'export...</span>
+          </div>
+        </div>
+        
+        <div class="export-details">
+          <div class="detail-row">
+            <span class="label">Temps écoulé :</span>
+            <span class="value" id="elapsed-time">00:00</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Temps estimé restant :</span>
+            <span class="value" id="estimated-remaining">Calcul en cours...</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Tweets traités :</span>
+            <span class="value" id="processed-tweets">0 / 0</span>
+          </div>
+        </div>
+
+        <div class="progress-actions">
+          <button type="button" class="btn btn-secondary" id="cancel-export-btn">
+            <span class="icon-x"></span>
+            Annuler l'export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de succès -->
+  <div class="modal" id="export-success-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Export terminé avec succès</h3>
+        <button type="button" class="modal-close" data-modal="export-success-modal">
+          <span class="icon-x"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="success-icon">
+          <span class="icon-check-circle"></span>
+        </div>
+        <div class="success-message">
+          <p>Votre export a été généré avec succès !</p>
+          <div class="export-summary">
+            <div class="summary-item">
+              <span class="label">Fichier :</span>
+              <span class="value" id="success-filename">export.csv</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Taille :</span>
+              <span class="value" id="success-filesize">- MB</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Durée :</span>
+              <span class="value" id="success-duration">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal="export-success-modal">
+          Fermer
+        </button>
+        <button type="button" class="btn btn-primary" id="download-file-btn">
+          <span class="icon-download"></span>
+          Télécharger le fichier
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale d'erreur -->
+  <div class="modal" id="export-error-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Erreur d'export</h3>
+        <button type="button" class="modal-close" data-modal="export-error-modal">
+          <span class="icon-x"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="error-icon">
+          <span class="icon-alert-circle"></span>
+        </div>
+        <div class="error-message">
+          <p id="error-text">Une erreur est survenue lors de l'export.</p>
+          <div class="error-details" id="error-details" style="display: none;">
+            <details>
+              <summary>Détails techniques</summary>
+              <pre id="error-stack"></pre>
+            </details>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal="export-error-modal">
+          Fermer
+        </button>
+        <button type="button" class="btn btn-primary" id="retry-export-btn">
+          <span class="icon-refresh"></span>
+          Réessayer
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Gestion des sélections de colonnes
+    // JavaScript amélioré pour l'export CSV
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('export-form');
       const selectAllBtn = document.getElementById('select-all');
       const deselectAllBtn = document.getElementById('deselect-all');
       const resetBtn = document.getElementById('reset-defaults');
       const selectedCountSpan = document.querySelector('.selected-count');
+      const exportBtn = document.getElementById('export-btn');
+      const refreshEstimateBtn = document.getElementById('refresh-estimate');
       
+      // Variables d'état
+      let currentExportId = null;
+      let exportStartTime = null;
+      let progressInterval = null;
+      
+      // Gestion des filtres de date
+      function initializeDateFilters() {
+        const dateFilterInputs = document.querySelectorAll('input[name="date_filter_type"]');
+        
+        dateFilterInputs.forEach(input => {
+          input.addEventListener('change', function() {
+            // Masquer tous les conteneurs de date
+            document.getElementById('single-date-inputs').style.display = 'none';
+            document.getElementById('multiple-date-inputs').style.display = 'none';
+            
+            // Afficher le conteneur approprié
+            if (this.value === 'single_range') {
+              document.getElementById('single-date-inputs').style.display = 'block';
+            } else if (this.value === 'multiple_ranges') {
+              document.getElementById('multiple-date-inputs').style.display = 'block';
+            }
+            
+            updateEstimation();
+          });
+        });
+        
+        // Gestion des plages multiples
+        document.getElementById('add-date-range').addEventListener('click', addDateRange);
+      }
+      
+      function addDateRange() {
+        const container = document.getElementById('date-ranges-container');
+        const rangeIndex = container.children.length;
+        
+        const rangeElement = document.createElement('div');
+        rangeElement.className = 'date-range-item';
+        rangeElement.innerHTML = `
+          <div class="date-range-inputs">
+            <div class="date-input-group">
+              <label>Début :</label>
+              <input type="date" name="multi_start_date_${rangeIndex}" class="date-picker">
+            </div>
+            <div class="date-input-group">
+              <label>Fin :</label>
+              <input type="date" name="multi_end_date_${rangeIndex}" class="date-picker">
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm remove-date-range">
+              <span class="icon-trash"></span>
+              Supprimer
+            </button>
+          </div>
+        `;
+        
+        container.appendChild(rangeElement);
+        
+        // Ajouter l'événement de suppression
+        rangeElement.querySelector('.remove-date-range').addEventListener('click', function() {
+          rangeElement.remove();
+          updateEstimation();
+        });
+        
+        // Ajouter les événements de changement
+        rangeElement.querySelectorAll('input[type="date"]').forEach(input => {
+          input.addEventListener('change', updateEstimation);
+        });
+      }
+      
+      // Gestion des modales
+      function showModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+      }
+      
+      function hideModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+      }
+      
+      // Event listeners pour fermer les modales
+      document.querySelectorAll('.modal-close').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const modalId = this.getAttribute('data-modal') || this.closest('.modal').id;
+          if (modalId) hideModal(modalId);
+        });
+      });
+
+      // Event listeners pour les overlays de modales
+      document.querySelectorAll('.modal-overlay').forEach(element => {
+        element.addEventListener('click', function(e) {
+          if (e.target === this) {
+            const modal = this.closest('.modal');
+            if (modal) hideModal(modal.id);
+          }
+        });
+      });
+
+      // Event listeners pour les boutons "Fermer" génériques
+      document.addEventListener('click', function(e) {
+        if (e.target.matches('[data-modal]') && e.target.textContent.trim() === 'Fermer') {
+          e.preventDefault();
+          const modalId = e.target.getAttribute('data-modal');
+          if (modalId) hideModal(modalId);
+        }
+      });
+      
+      // Estimation des données
+      async function updateEstimation() {
+        const filters = gatherFilters();
+        const columns = gatherSelectedColumns();
+        
+        if (columns.length === 0) {
+          document.getElementById('estimated-tweets').textContent = '0';
+          document.getElementById('estimated-size').textContent = '0 MB';
+          return;
+        }
+        
+        try {
+          document.getElementById('estimated-tweets').textContent = 'Calcul en cours...';
+          document.getElementById('estimated-size').textContent = 'Calcul en cours...';
+          
+          const response = await fetch('/api/export/estimate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              columns: columns,
+              filters: filters,
+              project_id: '{{ project_id }}'
+            })
+          });
+          
+          if (response.ok) {
+            const estimation = await response.json();
+            document.getElementById('estimated-tweets').textContent = estimation.tweet_count.toLocaleString();
+            document.getElementById('estimated-size').textContent = formatFileSize(estimation.file_size);
+          } else {
+            throw new Error('Erreur lors de l\'estimation');
+          }
+        } catch (error) {
+          console.error('Erreur estimation:', error);
+          document.getElementById('estimated-tweets').textContent = 'Erreur';
+          document.getElementById('estimated-size').textContent = 'Erreur';
+        }
+      }
+      
+      function gatherFilters() {
+        const filters = {};
+        
+        // Filtres de date
+        const dateFilterType = document.querySelector('input[name="date_filter_type"]:checked').value;
+        filters.date_filter_type = dateFilterType;
+        
+        if (dateFilterType === 'single_range') {
+          filters.start_date = document.querySelector('input[name="start_date"]').value;
+          filters.end_date = document.querySelector('input[name="end_date"]').value;
+        } else if (dateFilterType === 'multiple_ranges') {
+          const ranges = [];
+          document.querySelectorAll('.date-range-item').forEach((item, index) => {
+            const startDate = item.querySelector(`input[name="multi_start_date_${index}"]`).value;
+            const endDate = item.querySelector(`input[name="multi_end_date_${index}"]`).value;
+            if (startDate && endDate) {
+              ranges.push({ start: startDate, end: endDate });
+            }
+          });
+          filters.date_ranges = ranges;
+        }
+        
+        // Filtres de popularité
+        filters.min_likes = document.querySelector('input[name="min_likes"]').value || null;
+        filters.max_likes = document.querySelector('input[name="max_likes"]').value || null;
+        filters.min_retweets = document.querySelector('input[name="min_retweets"]').value || null;
+        filters.max_retweets = document.querySelector('input[name="max_retweets"]').value || null;
+        filters.min_quotes = document.querySelector('input[name="min_quotes"]').value || null;
+        filters.max_quotes = document.querySelector('input[name="max_quotes"]').value || null;
+        
+        return filters;
+      }
+      
+      function gatherSelectedColumns() {
+        return Array.from(document.querySelectorAll('input[name="columns"]:checked'))
+          .map(cb => cb.value);
+      }
+      
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+      
+      function formatDuration(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+      }
+      
+      // Gestion de l'export
+      async function initiateExport() {
+        const filters = gatherFilters();
+        const columns = gatherSelectedColumns();
+        
+        if (columns.length === 0) {
+          showMessage('error', 'Veuillez sélectionner au moins une colonne à exporter.');
+          return;
+        }
+        
+        // Préparer les données de confirmation
+        const estimatedTweets = document.getElementById('estimated-tweets').textContent;
+        const estimatedSize = document.getElementById('estimated-size').textContent;
+        
+        document.getElementById('confirm-tweet-count').textContent = estimatedTweets;
+        document.getElementById('confirm-file-size').textContent = estimatedSize;
+        document.getElementById('confirm-column-count').textContent = columns.length;
+        
+        // Afficher l'avertissement pour les gros exports
+        const tweetCount = parseInt(estimatedTweets.replace(/[,\s]/g, '')) || 0;
+        const warningElement = document.getElementById('large-export-warning');
+        if (tweetCount > 100000) {
+          warningElement.style.display = 'block';
+        } else {
+          warningElement.style.display = 'none';
+        }
+        
+        showModal('export-confirmation-modal');
+      }
+      
+      async function confirmExport() {
+        hideModal('export-confirmation-modal');
+        showModal('export-progress-modal');
+        
+        const filters = gatherFilters();
+        const columns = gatherSelectedColumns();
+        const format = document.querySelector('input[name="format"]:checked').value;
+        const includeHeaders = document.querySelector('input[name="include_headers"]').checked;
+        const utf8Bom = document.querySelector('input[name="utf8_bom"]').checked;
+        const customFilename = document.getElementById('export_filename').value.trim();
+        
+        exportStartTime = Date.now();
+        
+        try {
+          // Démarrer l'export
+          const response = await fetch('/api/export/start', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              project_id: '{{ project_id }}',
+              columns: columns,
+              filters: filters,
+              format: format,
+              include_headers: includeHeaders,
+              utf8_bom: utf8Bom,
+              custom_filename: customFilename
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            currentExportId = result.export_id;
+            startProgressTracking();
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
+            throw new Error(errorData.message || 'Impossible de démarrer l\'export');
+          }
+        } catch (error) {
+          hideModal('export-progress-modal');
+          showError('Erreur lors du démarrage de l\'export', error.message);
+        }
+      }
+      
+      function startProgressTracking() {
+        progressInterval = setInterval(async () => {
+          try {
+            const response = await fetch(`/api/export/progress/${currentExportId}`);
+            if (response.ok) {
+              const progress = await response.json();
+              updateProgressDisplay(progress);
+              
+              if (progress.status === 'completed') {
+                clearInterval(progressInterval);
+                hideModal('export-progress-modal');
+                showExportSuccess(progress);
+              } else if (progress.status === 'failed') {
+                clearInterval(progressInterval);
+                hideModal('export-progress-modal');
+                showError('Erreur durant l\'export', progress.error || 'Erreur inconnue');
+              }
+            }
+          } catch (error) {
+            console.error('Erreur lors de la vérification du progrès:', error);
+          }
+        }, 1000);
+      }
+      
+      function updateProgressDisplay(progress) {
+        const percentage = Math.round(progress.percentage);
+        document.getElementById('progress-fill').style.width = `${percentage}%`;
+        document.getElementById('progress-percentage').textContent = `${percentage}%`;
+        document.getElementById('progress-status').textContent = progress.status_message || 'En cours...';
+        
+        // Temps écoulé
+        const elapsed = Math.floor((Date.now() - exportStartTime) / 1000);
+        document.getElementById('elapsed-time').textContent = formatDuration(elapsed);
+        
+        // Temps restant estimé
+        if (percentage > 0) {
+          const totalEstimated = (elapsed / percentage) * 100;
+          const remaining = Math.max(0, totalEstimated - elapsed);
+          document.getElementById('estimated-remaining').textContent = formatDuration(Math.round(remaining));
+        }
+        
+        // Tweets traités
+        document.getElementById('processed-tweets').textContent = 
+          `${progress.processed_tweets || 0} / ${progress.total_tweets || 0}`;
+      }
+      
+      function showExportSuccess(result) {
+        document.getElementById('success-filename').textContent = result.filename || 'export.csv';
+        document.getElementById('success-filesize').textContent = formatFileSize(result.file_size || 0);
+        
+        const duration = Math.floor((Date.now() - exportStartTime) / 1000);
+        document.getElementById('success-duration').textContent = formatDuration(duration);
+        
+        showModal('export-success-modal');
+        
+        // Préparer le téléchargement
+        document.getElementById('download-file-btn').onclick = async (e) => {
+          e.preventDefault();
+          try {
+            const response = await fetch(`/api/export/download/${currentExportId}`);
+            if (response.ok) {
+              // Créer un blob à partir de la réponse
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              
+              // Créer un lien de téléchargement temporaire
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = result.filename || 'export.csv';
+              document.body.appendChild(a);
+              a.click();
+              
+              // Nettoyer
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+              
+              hideModal('export-success-modal');
+            } else {
+              throw new Error('Erreur lors du téléchargement');
+            }
+          } catch (error) {
+            console.error('Erreur téléchargement:', error);
+            showMessage('error', 'Erreur lors du téléchargement du fichier: ' + error.message);
+          }
+        };
+      }
+      
+      function showError(title, message, details = null) {
+        document.getElementById('error-text').textContent = message;
+        
+        if (details) {
+          document.getElementById('error-stack').textContent = details;
+          document.getElementById('error-details').style.display = 'block';
+        } else {
+          document.getElementById('error-details').style.display = 'none';
+        }
+        
+        showModal('export-error-modal');
+      }
+      
+      function showMessage(type, message) {
+        const messagesContainer = document.getElementById('export-messages');
+        const messageIcon = messagesContainer.querySelector('.message-icon');
+        const messageText = messagesContainer.querySelector('.message-text');
+        
+        messageIcon.className = `message-icon icon-${type === 'error' ? 'alert-circle' : 'info'}`;
+        messageText.textContent = message;
+        messagesContainer.className = `export-messages ${type}`;
+        messagesContainer.style.display = 'block';
+        
+        setTimeout(() => {
+          messagesContainer.style.display = 'none';
+        }, 5000);
+      }
+      
+      // Gestion des sélections de colonnes (code existant amélioré)
       function updateSelectedCount() {
         const checkedBoxes = form.querySelectorAll('input[name="columns"]:checked');
         selectedCountSpan.textContent = `${checkedBoxes.length} colonnes sélectionnées`;
+        updateEstimation();
       }
       
       function handleTableSelectAll() {
@@ -427,15 +1153,18 @@
             });
             
             updateSelectedCount();
+            updateEstimation(); // Mettre à jour l'estimation après sélection en masse
           });
         });
       }
       
+      // Event listeners
       selectAllBtn.addEventListener('click', function() {
         form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
           cb.checked = true;
         });
         updateSelectedCount();
+        updateEstimation(); // Mettre à jour l'estimation
       });
       
       deselectAllBtn.addEventListener('click', function() {
@@ -443,21 +1172,87 @@
           cb.checked = false;
         });
         updateSelectedCount();
+        updateEstimation(); // Mettre à jour l'estimation
       });
       
       resetBtn.addEventListener('click', function() {
-        // Remettre les valeurs par défaut (checked dans le HTML)
         form.querySelectorAll('input[name="columns"]').forEach(cb => {
           cb.checked = cb.hasAttribute('checked');
         });
         updateSelectedCount();
+        updateEstimation(); // Mettre à jour l'estimation
       });
       
-      // Écouter les changements sur toutes les checkboxes
-      form.addEventListener('change', updateSelectedCount);
+      refreshEstimateBtn.addEventListener('click', updateEstimation);
       
+      exportBtn.addEventListener('click', initiateExport);
+      
+      document.getElementById('confirm-export-btn').addEventListener('click', confirmExport);
+      
+      document.getElementById('cancel-export-btn').addEventListener('click', function() {
+        if (currentExportId && progressInterval) {
+          clearInterval(progressInterval);
+          fetch(`/api/export/cancel/${currentExportId}`, { method: 'POST' });
+        }
+        hideModal('export-progress-modal');
+      });
+      
+      document.getElementById('retry-export-btn').addEventListener('click', function() {
+        hideModal('export-error-modal');
+        initiateExport();
+      });
+      
+      // Écouter les changements sur toutes les checkboxes et filtres
+      form.addEventListener('change', function(e) {
+        if (e.target.name === 'columns') {
+          updateSelectedCount();
+          // Également mettre à jour l'estimation quand on change les colonnes
+          updateEstimation();
+        } else if (e.target.matches('input[name^="min_"], input[name^="max_"], input[type="date"]')) {
+          updateEstimation();
+        }
+      });
+
+      // Ajouter des event listeners spécifiques pour les filtres de popularité
+      document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name^="min_"], input[name^="max_"]')) {
+          // Délai pour éviter trop de requêtes pendant la saisie
+          clearTimeout(window.estimationTimeout);
+          window.estimationTimeout = setTimeout(updateEstimation, 500);
+        }
+      });
+      
+      // Gestion du changement de format de fichier
+      function initializeFormatHandlers() {
+        const formatRadios = document.querySelectorAll('input[name="format"]');
+        const extensionSpan = document.getElementById('filename-extension');
+        
+        formatRadios.forEach(radio => {
+          radio.addEventListener('change', function() {
+            let extension = '.csv';
+            switch(this.value) {
+              case 'tsv':
+                extension = '.tsv';
+                break;
+              case 'excel':
+                extension = '.xlsx';
+                break;
+              default:
+                extension = '.csv';
+            }
+            extensionSpan.textContent = extension;
+          });
+        });
+      }
+
+      // Initialisation
+      initializeDateFilters();
+      initializeFormatHandlers();
       handleTableSelectAll();
       updateSelectedCount();
+      
+      // Estimation initiale
+      setTimeout(updateEstimation, 500);
     });
   </script>
 

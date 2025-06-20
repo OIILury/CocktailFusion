@@ -915,7 +915,7 @@ pub struct CsvExportTemplate {
     pub logout_url: String,
     pub include_count: i64,
     pub exclude_count: i64,
-    pub niveau: i32,
+    pub niveau: i64,
     pub last_login_datetime: NaiveDateTime,
     pub title: String,
     pub tweets_count: i64,

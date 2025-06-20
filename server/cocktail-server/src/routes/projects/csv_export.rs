@@ -56,7 +56,7 @@ pub async fn csv_export(
         logout_url,
         include_count,
         exclude_count,
-        niveau: niveau.try_into().unwrap(),
+        niveau: niveau.into(),
         last_login_datetime,
         title: project.title,
         tweets_count: project.tweets_count,

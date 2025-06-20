@@ -12,7 +12,7 @@ use axum::{
   http::{header::CONTENT_TYPE, Request, StatusCode, Uri},
   middleware::{self, Next},
   response::{IntoResponse, Response, Redirect},
-  routing::get,
+  routing::{get, post},
   BoxError, Extension, Router,
 };
 use axum_extra::routing::RouterExt;
@@ -31,6 +31,7 @@ use routes::auth::{auth_login, auth_registration};
 use serde::de::{self, IntoDeserializer};
 use serde_json::json;
 use sqlx::{
+  postgres::{PgPool, PgPoolOptions},
   sqlite::{SqliteConnectOptions, SqlitePoolOptions},
   ConnectOptions,
 };
@@ -66,6 +67,7 @@ pub mod utils;
 pub struct AppState {
   pub db: WebDatabase,
   pub topk_db: TopKDatabase,
+  pub pg_pool: PgPool,
   pub index: fts::Index,
   pub kratos_configuration: Configuration,
   pub kratos_browser_url: String,
@@ -85,6 +87,12 @@ impl Default for AppState {
         .expect("Failed to create pool")
     );
     
+    // Créer le pool PostgreSQL partagé
+    let pg_pool = PgPoolOptions::new()
+        .max_connections(5) // Limiter à 5 connexions
+        .connect_lazy(&database_url)
+        .expect("Failed to create PostgreSQL pool");
+    
     // Créer le chemin vers l'index Tantivy
     let tantivy_path = std::path::PathBuf::from("tantivy-data/public");
     
@@ -94,6 +102,7 @@ impl Default for AppState {
         sqlx::sqlite::SqlitePool::connect_lazy(&sqlite_url)
           .expect("Failed to create topk pool")
       ),
+      pg_pool,
       index: fts::retrieve_index(tantivy_path.clone()).expect("Failed to retrieve index"),
       kratos_configuration: Configuration::new(),
       kratos_browser_url: String::new(),
@@ -120,6 +129,12 @@ impl FromRef<AppState> for WebDatabase {
 impl FromRef<AppState> for TopKDatabase {
   fn from_ref(input: &AppState) -> Self {
     input.topk_db.clone()
+  }
+}
+
+impl FromRef<AppState> for PgPool {
+  fn from_ref(input: &AppState) -> Self {
+    input.pg_pool.clone()
   }
 }
 
@@ -209,10 +224,18 @@ pub async fn run(
 
   let turbo_stream = middleware::from_fn(turbo_stream);
 
+  // Créer le pool PostgreSQL partagé
+  let pg_pool = PgPoolOptions::new()
+    .max_connections(5) // Limiter à 5 connexions max
+    .connect(&databases.pg_uri)
+    .await
+    .expect("erreur : impossible de se connecter à PostgreSQL.");
+
   let search_index = fts::retrieve_index(tantivy_path.clone())?;
   let state = AppState {
     db: WebDatabase::new(pool),
     topk_db: TopKDatabase::new(pool_topk),
+    pg_pool,
     index: search_index,
     kratos_configuration,
     database_url: databases.pg_uri,
@@ -279,6 +302,12 @@ pub async fn run(
     .route("/static/*file", get(static_handler))
     .route("/projets/:project_id/import", get(import))
     .route("/projets/:project_id/export", get(csv_export))
+    // Nouvelles routes API pour l'export amélioré
+    .route("/api/export/estimate", post(routes::export_api::estimate_export))
+    .route("/api/export/start", post(routes::export_api::start_export))
+    .route("/api/export/progress/:export_id", get(routes::export_api::get_export_progress))
+    .route("/api/export/cancel/:export_id", post(routes::export_api::cancel_export))
+    .route("/api/export/download/:export_id", get(routes::export_api::download_export))
     .merge(csv_import::routes())
     .merge(automation::routes())
     .fallback(fallback)

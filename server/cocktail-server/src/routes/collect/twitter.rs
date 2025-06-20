@@ -70,27 +70,29 @@ impl TwitterCollector {
         // Optimisations pour gros volumes :
         // - Augmenter drastiquement le nombre de requêtes max (pour 100k+ tweets)
         // - Calculer dynamiquement basé sur la limite demandée
+        // - LIMITATION: context_annotations limite max_results à 100 par requête
         let max_requests = if limit > 10000 {
-            (limit / 100) + 50 // Pour 100k tweets : 1000 + 50 = 1050 requêtes max
+            (limit / 100) + 100 // Pour 100k tweets avec limitation 100/requête : 1000 + 100 = 1100 requêtes max
         } else {
-            (limit / 100) + 10 // Pour volumes plus petits
+            (limit / 100) + 20 // Pour volumes plus petits avec limitation 100/requête
         };
         
         tracing::info!("Configured for max {} requests to collect {} tweets", max_requests, limit);
         
         while tweets.len() < limit && request_count < max_requests {
-            // OPTIMISATION GROS VOLUMES : Utiliser le maximum API Twitter (500 tweets par requête)
+            // OPTIMISATION GROS VOLUMES : Utiliser le maximum API Twitter (100 tweets par requête avec context_annotations)
             let remaining_tweets = limit - tweets.len();
             let batch_limit = if limit > 10000 {
-                // Pour gros volumes : toujours demander le maximum (500)
-                500
+                // Pour gros volumes : toujours demander le maximum (100 à cause de context_annotations)
+                100
             } else {
                 // Pour petits volumes : ajuster au besoin
                 remaining_tweets.min(100)
             };
             
             // Twitter API requires max_results to be between 10 and 500
-            let twitter_max_results = batch_limit.max(10).min(500);
+            // MAIS: quand context_annotations est demandé, max_results doit être <= 100
+            let twitter_max_results = batch_limit.max(10).min(100); // Limité à 100 à cause de context_annotations
             
             // TOUS LES CHAMPS pour une collecte complète (même pour gros volumes)
             let mut params = vec![
@@ -177,7 +179,9 @@ impl TwitterCollector {
                 .map_err(|e| WebError::WTFError(format!("Twitter API request error: {}", e)))?;
             
             let request_duration = start_time.elapsed();
-            tracing::info!("Requête API terminée en {:?}", request_duration);
+            if limit <= 10000 {
+                tracing::info!("Requête API terminée en {:?}", request_duration);
+            }
             
             if !response.status().is_success() {
                 let status = response.status();
@@ -215,7 +219,9 @@ impl TwitterCollector {
                 .map_err(|e| WebError::WTFError(format!("Twitter API response parse error: {}", e)))?;
             
             let parse_duration = parse_start.elapsed();
-            tracing::info!("Parsing JSON terminé en {:?}", parse_duration);
+            if limit <= 10000 {
+                tracing::info!("Parsing JSON terminé en {:?}", parse_duration);
+            }
             
             if let Some(data) = search_response.data {
                 if data.is_empty() {
@@ -229,7 +235,9 @@ impl TwitterCollector {
                 let new_tweets_count = tweets_to_add.len();
                 
                 tweets.extend(tweets_to_add);
-                tracing::info!("Ajouté {} nouveaux tweets (total: {}/{})", new_tweets_count, tweets.len(), limit);
+                if limit <= 10000 || request_count % 50 == 0 {
+                    tracing::info!("Ajouté {} nouveaux tweets (total: {}/{})", new_tweets_count, tweets.len(), limit);
+                }
                 
                 // Si on a atteint la limite demandée, arrêter la collecte
                 if tweets.len() >= limit {
@@ -275,11 +283,11 @@ impl TwitterCollector {
             
             // OPTIMISATION RATE LIMITS - Plus agressif pour gros volumes
             let default_delay = if limit > 100000 {
-                1 // 1 seconde pour très gros volumes (100k+) - risqué mais rapide
+                0 // 0 seconde pour très gros volumes (100k+) - le plus rapide possible
             } else if limit > 10000 {
-                2 // 2 secondes pour gros volumes (10k+) - bon compromis
+                0 // 0 seconde pour gros volumes (10k+) - rapide
             } else {
-                4 // 4 secondes pour volumes normaux - sécurisé
+                1 // 1 seconde pour volumes normaux - compromis
             };
             
             let delay_seconds = std::env::var("TWITTER_RATE_LIMIT_DELAY_SECONDS")
@@ -289,8 +297,12 @@ impl TwitterCollector {
             
             let sleep_duration = tokio::time::Duration::from_secs(delay_seconds);
             
-            tracing::debug!("Attente de {:?} avant la prochaine requête (respect des rate limits)", sleep_duration);
-            tokio::time::sleep(sleep_duration).await;
+            if delay_seconds > 0 {
+                if limit <= 10000 {
+                    tracing::debug!("Attente de {:?} avant la prochaine requête (respect des rate limits)", sleep_duration);
+                }
+                tokio::time::sleep(sleep_duration).await;
+            }
         }
         
         let final_count = tweets.len().min(limit);
